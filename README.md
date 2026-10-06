@@ -26,8 +26,8 @@ users at 45,804 venues, collected in 2012-13 and 2017-18.
 |---|---|
 | revision | commit `1e6af440a88ee54c83b1e30930290699e194a726` |
 | SHA-256 | `edc194f732cb236d841dbee775000c40d9e69bd9668c0aeebf266a159167b3a6` |
-| license | Apache 2.0; upstream sources Semantic Trails (CC0 1.0) and Foursquare Open Source Places (Apache 2.0) |
-| retrieved | first on August 31, 2026; re-verified by the notebook on October 5, 2026 |
+| license | Apache 2.0, with upstream sources Semantic Trails (CC0 1.0) and Foursquare Open Source Places (Apache 2.0) |
+| retrieved | first on August 31, 2026, and re-verified by the notebook on October 5, 2026 |
 
 The repository holds no data. The notebook downloads the file and checks its checksum. To run the code in `src/` and `hpc/`,
 place the release under `data/massive_steps/new_york/` or point `PROXY_DATA_ROOT` at a folder with that layout.
