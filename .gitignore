@@ -1,0 +1,11 @@
+# data, outputs and caches stay out of the repository
+data/
+*.csv
+*.parquet
+*.json
+*.jsonl
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.DS_Store

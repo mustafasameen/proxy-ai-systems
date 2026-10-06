@@ -1,0 +1,6 @@
+# Notebook requirements. Tested with Python 3.12.7.
+pandas==2.3.1
+numpy==2.5.2
+huggingface_hub==0.36.0
+nbconvert==7.16.4
+ipykernel==6.28.0
