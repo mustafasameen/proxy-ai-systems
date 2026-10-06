@@ -10,8 +10,8 @@ popularity, so popularity alone cannot give the answer away.
 | path | contents |
 |---|---|
 | `playground.ipynb` | downloads the dataset, verifies it and takes a first look at it |
-| `src/proxy/` | data loading, the per-user split, the five-option decisions and their prompts |
-| `hpc/` | scripts that write the decision files and train the model adapter on a GPU cluster |
+| `src/proxy/` | data loading, the per-user split, the five-option decisions, their prompts, and paired per-user statistics |
+| `hpc/` | scripts that write the decision files, build the other-person control, and train the model adapter on a GPU cluster |
 | `proposal/milestone3/` | the statistics and checks reported in the Milestone 3 data document |
 | `requirements.txt` | Python packages for the notebook |
 

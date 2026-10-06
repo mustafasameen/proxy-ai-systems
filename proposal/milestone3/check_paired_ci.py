@@ -8,8 +8,8 @@ comparisons. The unit of the interval is the user: decisions of one user are rep
 This script takes a hand-built example of six users with 2 to 30 decisions each and computes the comparison twice.
   1. By hand, with no project code and no random numbers: per-user accuracy differences, then the exact bootstrap
      over users (all 6**6 = 46,656 equally likely resamples), then the decision rule.
-  2. With the project's own functions, paired_user_deltas and bootstrap_delta_ci, loaded from the project's
-     checker script (see PROXY_CHECKER below).
+  2. With the project's own functions, paired_user_deltas and bootstrap_delta_ci, loaded from
+     src/proxy/paired_stats.py (see PROXY_CHECKER below).
 It also runs the wrong calculation (resampling decisions as if each were a user) to show what the check guards
 against, and two fixtures with known answers (identical approaches, and a planted effect).
 The script stops with exit status 1 if the hand calculation and the project's function disagree.
@@ -17,7 +17,7 @@ The script stops with exit status 1 if the hand calculation and the project's fu
     cd <proxy project root>
     python proposal/milestone3/check_paired_ci.py
 
-PROXY_ROOT and PROXY_CHECKER override the project root and the path of the project's checker script.
+PROXY_ROOT and PROXY_CHECKER override the project root and the path of the module with those two functions.
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("PROXY_ROOT", HERE.parents[1]))
-CHECKER = Path(os.environ.get("PROXY_CHECKER", ROOT / "hpc" / "check_results_registry.py"))
+CHECKER = Path(os.environ.get("PROXY_CHECKER", ROOT / "src" / "proxy" / "paired_stats.py"))
 
 # One string per user and approach, one character per decision: 1 = the approach picked the recorded venue.
 # A = fine-tuned model, H = strongest history-free baseline, S = fine-tuned model with another user's history.
