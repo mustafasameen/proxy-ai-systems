@@ -10,8 +10,8 @@ popularity, so popularity alone cannot give the answer away.
 | path | contents |
 |---|---|
 | `playground.ipynb` | downloads the dataset, verifies it and takes a first look at it |
-| `src/proxy/` | data loading, the per-user split, the five-option decisions, their prompts, and paired per-user statistics |
-| `hpc/` | scripts that write the decision files, build the other-person control, and train the model adapter on a GPU cluster |
+| `src/proxy/` | data loading, the per-user split, the five-option questions, their prompts, and paired per-user statistics |
+| `hpc/` | scripts that write the question files, build the other-person control, and train the model adapter on a GPU cluster |
 | `proposal/milestone3/` | the statistics and checks reported in the Milestone 3 data document |
 | `requirements.txt` | Python packages for the notebook |
 
@@ -35,12 +35,12 @@ place the release under `data/massive_steps/new_york/` or point `PROXY_DATA_ROOT
 Venue histories can identify a person, so nothing here shows a user id, an exact time, or more than one check-in of the same
 person.
 
-## How a decision is built
+## How a prediction question is built
 
-- Users with at least 20 check-ins are kept, and the last 20% of each user's check-ins are held out.
-- A decision is a held-out check-in at a venue the user has not visited before. Its options are that venue and four others
-  drawn from the same popularity band, never from the user's own history.
-- The system sees the user's 30 most recent earlier check-ins and picks one option.
+- Users with at least 20 check-ins are kept, and the last 20% of each user's check-ins are held out for testing.
+- Each question is one held-out visit to a place the user had never been before. The five options are that place and four
+  decoys drawn from places of similar popularity, never from places the user already visited.
+- The system sees the user's 30 most recent earlier check-ins and picks one of the five options.
 
 ## Run
 
