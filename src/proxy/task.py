@@ -5,11 +5,17 @@ targets, and present each target as a K-way multiple choice: the venue they actu
 K-1 distractors. A system's delegation fidelity is the fraction of targets it gets right.
 
 The distractor policy is the experiment's most load-bearing choice, so it is explicit and
-swappable. `popular` samples distractors from the city's most-visited venues; a purely random draw
-from thousands of venues makes the task trivially easy (the true venue is the only plausible one)
-and would flatter every arm equally. The `popmatched` and `textmatched` policies below match the
-distractors to the true venue's popularity (and, for `textmatched`, its genericness) instead.
-Reported numbers are meaningless without naming the policy.
+swappable. `popmatched` is the canonical policy (src/proxy/config.py) and the default: each
+distractor is drawn from the true venue's own popularity band, so popularity does not identify the
+answer. `textmatched` is the harder policy; it also matches the true venue's genericness.
+`popular` samples distractors from the city's most-visited venues and `random` from all venues. A
+purely random draw from thousands of venues makes the task trivially easy (the true venue is the
+only plausible one), and `popular` leaks the answer (the true venue of a new-venue decision is
+usually obscure, the distractors are popular by construction); both are kept only as named
+reference conditions. Reported numbers are meaningless without naming the policy.
+
+Order. A user's check-ins are ordered by (timestamp, venue id). Two check-ins of one user with the
+same timestamp are therefore ordered by venue id, compared as text.
 
 Why the trivial baselines come first. If "the venue this user visited most in their history"
 already scores high, the task measures habit lookup, not delegation, and no LLM result on it would
@@ -21,12 +27,13 @@ import random
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
+from proxy.config import CANONICAL
 from proxy.datasets import load
 from proxy.textmatch import load_genericness, matched_pool
 
 TEST_FRAC = 0.2
 MIN_EVENTS = 20
-K = 5
+K = CANONICAL["k"]
 
 
 @dataclass
@@ -37,8 +44,15 @@ class Target:
     history: list[str]          # the user's items before this decision, chronological
 
 
-def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=0, limit=None,
-          distractors="popular", genericness_path=None, fallback_stats=None):
+def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=CANONICAL["seed"], limit=None,
+          distractors=CANONICAL["distractors"], genericness_path=None, fallback_stats=None):
+    """All held-out decisions of every eligible user, each with k options. Returns (targets, n_eligible_users).
+
+    distractors: popmatched (the default, canonical), textmatched, popular or random. `genericness_path`
+    is required by `textmatched` and ignored by every other condition. `fallback_stats` is a dict that
+    `textmatched` fills in place with the number of rows it drew and the number that needed a wider
+    genericness window.
+    """
     per = defaultdict(list)
     for e in load(name, limit=limit):
         per[e.user].append((e.ts, e.item))
@@ -169,15 +183,16 @@ def baselines(targets, pop_rank):
 
 if __name__ == "__main__":
     import sys
-    name = sys.argv[1] if len(sys.argv) > 1 else "fsq_nyc"
+    name = sys.argv[1] if len(sys.argv) > 1 else CANONICAL["dataset"]
     lim = int(sys.argv[2]) if len(sys.argv) > 2 else None
-    tg, nu = build(name, limit=lim)
+    policy = CANONICAL["distractors"]
+    tg, nu = build(name, limit=lim, distractors=policy)
     pop = Counter()
     for t in tg:
         pop[t.true_item] += 1
     b = baselines(tg, pop)
     print(f"\n{name}: {nu:,} eligible users, {b['n_targets']:,} held-out decisions, K={K}, "
-          f"distractors=popular")
+          f"distractors={policy}")
     print(f"  {'random':22} {b['random']:.3f}")
     for kk in ("population", "personal_freq", "personal_recent"):
         print(f"  {kk:22} {b[kk]:.3f}")

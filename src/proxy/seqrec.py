@@ -5,14 +5,15 @@ Nothing here loads or calls an LLM; everything is plain torch on CPU.
 
 Where the frozen targets come from. `arms.novel_targets(name, n_users=300, seed=0)` writes the
 frozen novel-venue target set: it calls `task.build(name, seed=0, k=5, min_events=20,
-test_frac=0.2, distractors="popular")` (task.py's own defaults), keeps only novel decisions
-(true_item not in the user's pre-cut history), then caps to 300 users via a
-`random.Random(0).sample` over the sorted novel-user list. `regenerate_targets` below calls
-`novel_targets` directly instead of re-deriving that filter and cap in this file. A second copy of
-that logic that drifted from arms.py by one line (a different `sorted()` key, or sampling before
-rather than after the novel filter) would silently decouple this arm's "shared target set" from
-the one every other arm is scored against, which is the failure arms.py's docstring warns about
-("an arm that regenerates its own targets is not comparable").
+test_frac=0.2, distractors="popmatched")` (task.py's own defaults, the canonical configuration of
+src/proxy/config.py), keeps only novel decisions (true_item not in the user's pre-cut history),
+then caps to 300 users via a `random.Random(0).sample` over the sorted novel-user list.
+`regenerate_targets` below calls `novel_targets` directly instead of re-deriving that filter and
+cap in this file. A second copy of that logic that drifted from arms.py by one line (a different
+`sorted()` key, or sampling before rather than after the novel filter) would silently decouple
+this arm's "shared target set" from the one every other arm is scored against, which is the
+failure arms.py's docstring warns about ("an arm that regenerates its own targets is not
+comparable").
 
 Pipeline
   regenerate_targets(name)  -> the frozen novel-only, 300-user Target list, for align_check.
@@ -53,17 +54,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from proxy.arms import LETTERS, _label, novel_targets
+from proxy.config import CANONICAL
 from proxy.task import build
 
-BUILD_ARGS = dict(k=5, min_events=20, test_frac=0.2, distractors="popular")  # task.py's own defaults
-N_USERS_CAP = 300     # number of users in the frozen evaluation sample
-HIST_N = 30            # matches arms.render_prompt's default hist_n -- same info budget as the prompt
+BUILD_ARGS = dict(k=CANONICAL["k"], min_events=20, test_frac=0.2,
+                  distractors=CANONICAL["distractors"])   # task.py's own defaults
+N_USERS_CAP = CANONICAL["n_users"]     # number of users in the frozen evaluation sample
+HIST_N = CANONICAL["hist_n"]           # matches arms.render_prompt's default hist_n -- same info budget as the prompt
 PAD_ID, UNK_ID = 0, 1
 
 
 # --------------------------------------------------------------------------------- (a) targets
 
-def regenerate_targets(name, n_users=N_USERS_CAP, seed=0, distractors="popular",
+def regenerate_targets(name, n_users=N_USERS_CAP, seed=CANONICAL["seed"],
+                       distractors=CANONICAL["distractors"],
                        genericness_path=None, fallback_stats=None):
     """The frozen novel-only, n_users-capped target set (the one hpc/build_targets.py writes).
     Returns (targets, cats); cats is arms.py's {item: {"cat":..., "name":...}} map, needed to
@@ -93,15 +97,16 @@ def regenerate_targets(name, n_users=N_USERS_CAP, seed=0, distractors="popular",
                             "genericness_path": genericness_path, "fallback_stats": fallback_stats})
 
 
-def regenerate_full(name, n_users=N_USERS_CAP, seed=0, distractors="popular",
+def regenerate_full(name, n_users=N_USERS_CAP, seed=CANONICAL["seed"],
+                    distractors=CANONICAL["distractors"],
                     genericness_path=None, fallback_stats=None):
     """Pooled / novel / revisit Target lists over the same 300 users as regenerate_targets, for
     the pooled/novel/revisit breakdown in report(). `keep` is read off the novel set's own users
     (never re-sampled), so it is guaranteed identical to what novel_targets actually kept.
 
-    Both calls below forward `distractors` explicitly. The module-level BUILD_ARGS hardcodes
-    distractors="popular", so a call that spread BUILD_ARGS without overriding it would silently
-    score the "popular" task whatever distractor mode was requested. For the same reason
+    Both calls below forward `distractors` explicitly. The module-level BUILD_ARGS holds the
+    canonical distractors, so a call that spread BUILD_ARGS without overriding it would silently
+    score the canonical task whatever distractor mode was requested. For the same reason
     `genericness_path` is forwarded to both calls: every mirrored call site gets every
     distractor-related argument, so none can drop one. `fallback_stats`, if given, is therefore
     mutated by both the `regenerate_targets` call and the `build` call: its counts mix the
@@ -187,14 +192,14 @@ def _eligible_sequences(name, min_events=20, test_frac=0.2):
     return seqs
 
 
-def build_vocab(name, min_events=20, test_frac=0.2, seed=0):
+def build_vocab(name, min_events=20, test_frac=0.2, seed=CANONICAL["seed"]):
     """Global item vocabulary over every eligible user's pre-cut sequence, plus <PAD>/<UNK>.
     Returns (item2id, sequences). Asserts its eligible-user count against task.build's own count
     for the same args, so a later change to task.py's eligibility rule cannot silently desync this
     vocabulary."""
     seqs = _eligible_sequences(name, min_events=min_events, test_frac=test_frac)
-    _, n_eligible = build(name, seed=seed, k=5, min_events=min_events, test_frac=test_frac,
-                          distractors="popular")
+    _, n_eligible = build(name, seed=seed, **{**BUILD_ARGS, "min_events": min_events,
+                                              "test_frac": test_frac})
     assert n_eligible == len(seqs), (
         f"build_vocab eligibility ({len(seqs)} users) diverged from task.build's own count "
         f"({n_eligible}) -- task.py's split logic changed under this mirror")
