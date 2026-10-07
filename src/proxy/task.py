@@ -8,11 +8,13 @@ The distractor policy is the experiment's most load-bearing choice, so it is exp
 swappable. `popmatched` is the canonical policy (src/proxy/config.py) and the default: each
 distractor is drawn from the true venue's own popularity band, so popularity does not identify the
 answer. `textmatched` is the harder policy; it also matches the true venue's genericness.
-`popular` samples distractors from the city's most-visited venues and `random` from all venues. A
-purely random draw from thousands of venues makes the task trivially easy (the true venue is the
-only plausible one), and `popular` leaks the answer (the true venue of a new-venue decision is
-usually obscure, the distractors are popular by construction); both are kept only as named
-reference conditions. Reported numbers are meaningless without naming the policy.
+`popmatched_period` is an optional variant of `popmatched` that also gives every distractor the true
+venue's pre-cut period profile (src/proxy/period.py); it is off unless named. `popular` samples
+distractors from the city's most-visited venues and `random` from all venues. A purely random draw
+from thousands of venues makes the task trivially easy (the true venue is the only plausible one),
+and `popular` leaks the answer (the true venue of a new-venue decision is usually obscure, the
+distractors are popular by construction); both are kept only as named reference conditions.
+Reported numbers are meaningless without naming the policy.
 
 Order. A user's check-ins are ordered by (timestamp, venue id). Two check-ins of one user with the
 same timestamp are therefore ordered by venue id, compared as text.
@@ -29,6 +31,7 @@ from dataclasses import dataclass
 
 from proxy.config import CANONICAL
 from proxy.datasets import load
+from proxy.period import PeriodTables, draw, period_of, row_rng
 from proxy.textmatch import load_genericness, matched_pool
 
 TEST_FRAC = 0.2
@@ -48,10 +51,11 @@ def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=CANONICAL[
           distractors=CANONICAL["distractors"], genericness_path=None, fallback_stats=None):
     """All held-out decisions of every eligible user, each with k options. Returns (targets, n_eligible_users).
 
-    distractors: popmatched (the default, canonical), textmatched, popular or random. `genericness_path`
-    is required by `textmatched` and ignored by every other condition. `fallback_stats` is a dict that
-    `textmatched` fills in place with the number of rows it drew and the number that needed a wider
-    genericness window.
+    distractors: popmatched (the default, canonical), textmatched, popmatched_period, popular or random.
+    `genericness_path` is required by `textmatched` and ignored by every other condition.
+    `fallback_stats` is a dict that `textmatched` and `popmatched_period` fill in place: "n_rows" decisions
+    drawn, "n_fallback" of them that needed a wider window than their own bin, and for `popmatched_period`
+    also "n_dropped", the decisions for which no window offers k - 1 distinct options (not returned).
     """
     per = defaultdict(list)
     for e in load(name, limit=limit):
@@ -101,6 +105,10 @@ def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=CANONICAL[
                 f"all-events vocabulary")
         if fallback_stats is None:
             fallback_stats = {}
+    if distractors == "popmatched_period":
+        period_tables = PeriodTables(name, limit, per, min_events, test_frac)
+        if fallback_stats is None:
+            fallback_stats = {}
     rng = random.Random(seed)
     targets, n_users = [], 0
     for u, evs in per.items():
@@ -110,7 +118,9 @@ def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=CANONICAL[
         cut = int(len(evs) * (1 - test_frac))
         hist = [it for _, it in evs[:cut]]
         n_users += 1
-        for _, true_it in evs[cut:]:
+        if distractors == "popmatched_period":
+            hist_set, n_seen = set(hist), {True: 0, False: 0}      # held-out decisions so far: new venue, revisit
+        for ts, true_it in evs[cut:]:
             if distractors == "popmatched":
                 hset = set(hist); b = bin_of[true_it]; pool = []; width = 0
                 while len(pool) < k - 1 and width <= NB:        # widen to neighbouring bins only if needed
@@ -145,6 +155,21 @@ def build(name, k=K, min_events=MIN_EVENTS, test_frac=TEST_FRAC, seed=CANONICAL[
                     if x not in picked: picked.append(x)
                 cands = picked + [true_it]
                 rng.shuffle(cands)
+                targets.append(Target(u, true_it, cands, hist))
+                continue
+            elif distractors == "popmatched_period":
+                # One generator per decision (src/proxy/period.py); the pool is the popmatched pool restricted
+                # to venues with the true venue's pre-cut period profile that are active in the decision's period.
+                novel = true_it not in hist_set
+                cands, width = draw(period_tables, true_it, hist_set, period_of(ts), bin_of, members, pre_pop, NB, k,
+                                    row_rng(name, seed, u, n_seen[novel], novel))
+                n_seen[novel] += 1
+                fallback_stats["n_rows"] = fallback_stats.get("n_rows", 0) + 1
+                if cands is None:
+                    fallback_stats["n_dropped"] = fallback_stats.get("n_dropped", 0) + 1
+                    continue
+                if width:
+                    fallback_stats["n_fallback"] = fallback_stats.get("n_fallback", 0) + 1
                 targets.append(Target(u, true_it, cands, hist))
                 continue
             else:
