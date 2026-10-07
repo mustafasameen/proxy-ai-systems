@@ -51,6 +51,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from proxy.arms import LETTERS, render_prompt
+from proxy.config import CANONICAL
 from proxy.datasets import load
 from proxy.task import K, MIN_EVENTS, TEST_FRAC, Target
 from proxy import seqrec
@@ -88,7 +89,7 @@ def _load_excluded_users(path):
 
 
 def build_sft_instances(name, n_per_user_max=20, seed=0, min_events=MIN_EVENTS,
-                        test_frac=TEST_FRAC, k=K, distractors="popular", genericness_path=None,
+                        test_frac=TEST_FRAC, k=K, distractors=CANONICAL["distractors"], genericness_path=None,
                         exclude_users_from=None):
     """Return (instances, meta). instances: list of dicts {ds, user, prompt, completion,
     target_item, history_len}. meta carries the counts to print and the leakage-check tallies.
@@ -285,7 +286,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--n-per-user-max", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--distractors", default="popular")
+    ap.add_argument("--distractors", default=CANONICAL["distractors"])
     ap.add_argument("--genericness", default=None,
                     help="path to a JSON table of genericness scores per venue; required with --distractors textmatched")
     ap.add_argument("--exclude-users-from", default=os.environ.get("PROXY_SFT_EXCLUDE_USERS_FROM", ""),
