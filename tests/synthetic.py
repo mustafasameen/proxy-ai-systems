@@ -105,7 +105,7 @@ def make_rows(seed=2026, n_old=150, n_new=150, n_span=100, n_small=30):
 
 
 def write_release(root, rows=None):
-    """Write the release under `root` the way datasets.REGISTRY lays it out. Returns the csv path."""
+    """Write the release under `root` the way datasets.DATASET_PATHS lays it out. Returns the csv path."""
     path = Path(root) / "massive_steps" / "new_york" / "new_york_checkins.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -117,8 +117,8 @@ def write_release(root, rows=None):
 
 @contextmanager
 def registered(path, name=DATASET):
-    """Point datasets.REGISTRY[name] at `path` for the duration of the block."""
-    with mock.patch.dict(datasets.REGISTRY, {name: Path(path)}):
+    """Point datasets.DATASET_PATHS[name] at `path` for the duration of the block."""
+    with mock.patch.dict(datasets.DATASET_PATHS, {name: Path(path)}):
         yield
 
 

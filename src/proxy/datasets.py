@@ -2,7 +2,7 @@
 
 All datasets are read from one data root: the folder named by the PROXY_DATA_ROOT environment
 variable, or `data/` at the repository root when the variable is not set. Each dataset sits at a
-fixed path below that root (see REGISTRY). Nothing here copies or downloads data. `resolve()`
+fixed path below that root (see DATASET_PATHS). Nothing here copies or downloads data. `resolve()`
 raises with the path it looked for, so a missing dataset fails loudly when it is first used
 instead of producing a silently empty table.
 
@@ -20,11 +20,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-# The data root is PROXY_DATA_ROOT if set, otherwise <repository root>/data. Every path in REGISTRY
+# The data root is PROXY_DATA_ROOT if set, otherwise <repository root>/data. Every path in DATASET_PATHS
 # is relative to it.
 DATA_ROOT = Path(os.environ.get("PROXY_DATA_ROOT", Path(__file__).resolve().parents[2] / "data"))
 
-REGISTRY = {
+DATASET_PATHS = {
     "fsq_nyc":   DATA_ROOT / "foursquare/dataset_tsmc2014/dataset_TSMC2014_NYC.txt",
     "fsq_tky":   DATA_ROOT / "foursquare/dataset_tsmc2014/dataset_TSMC2014_TKY.txt",
     "gowalla":   DATA_ROOT / "gowalla/loc-gowalla_totalCheckins.txt.gz",
@@ -56,9 +56,9 @@ class Event:
 
 
 def resolve(name: str) -> Path:
-    if name not in REGISTRY:
-        raise KeyError(f"unknown dataset {name!r}; known: {sorted(REGISTRY)}")
-    p = REGISTRY[name]
+    if name not in DATASET_PATHS:
+        raise KeyError(f"unknown dataset {name!r}; known: {sorted(DATASET_PATHS)}")
+    p = DATASET_PATHS[name]
     if not p.exists():
         raise FileNotFoundError(f"{name} not found at {p} ; set PROXY_DATA_ROOT to the folder that holds the datasets")
     return p
@@ -114,7 +114,7 @@ def load(name: str, limit: int | None = None):
                             float(row["latitude"]) if row.get("latitude") else None,
                             float(row["longitude"]) if row.get("longitude") else None,
                             row.get("name") or None)
-    # YJMob100K loader. REGISTRY has no yjmob entry in this repository, so resolve() rejects the
+    # YJMob100K loader. DATASET_PATHS has no yjmob entry in this repository, so resolve() rejects the
     # name before this branch is reached unless an entry is added.
     elif name.startswith("yjmob"):
         # uid,d,t,x,y: d = day index, t = 30-min slot; synthesize an ordering timestamp
