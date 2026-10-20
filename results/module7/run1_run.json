@@ -1,0 +1,66 @@
+{
+ "name": "run1",
+ "config": {
+  "model": "meta-llama/Llama-3.1-8B-Instruct",
+  "revision_requested": "0e9e39f2",
+  "revision_used": "0e9e39f249a16976918f6564b8830bc894c89659",
+  "dataset": "steps_new_york",
+  "distractors": "popmatched",
+  "split": "development",
+  "n_users": 300,
+  "n_rows": 2291,
+  "seed": 0,
+  "hist_n": 30,
+  "hist_order": "recent",
+  "k": 5,
+  "prompt": "canonical",
+  "distance_cue": false,
+  "zero_shot": true,
+  "adapter": null,
+  "decoding": {
+   "temperature": 0.0,
+   "max_tokens": 2,
+   "constraint": "choice over ['A', 'B', 'C', 'D', 'E']",
+   "log_prob_pass": {
+    "max_tokens": 1,
+    "allowed_token_ids": "the five letters",
+    "mode": "processed_logprobs"
+   },
+   "batch_size": 512,
+   "VLLM_BATCH_INVARIANT": "1",
+   "max_model_len": 4096,
+   "gpu_memory_utilization": 0.85,
+   "seed": 0
+  },
+  "versions": {
+   "python": "3.12.14",
+   "vllm": "0.28.0",
+   "torch": "2.13.0+cu130",
+   "transformers": "5.16.1"
+  },
+  "targets_file": "dev_rows.jsonl",
+  "prompt_md5": "dc69ad24fc8bba70bb363ab6a1f89b08",
+  "chat_prompt_md5": "e51888985813d297052b9c9dd399d353",
+  "dry_run": false
+ },
+ "result": {
+  "top1": 0.32736796158882586,
+  "unparsed": 0,
+  "pick_differs_from_max_logprob": 0
+ },
+ "constraints": {
+  "model_load_seconds": 81.3,
+  "decode_seconds": 7.18,
+  "logprob_seconds": 2.17,
+  "scoring_seconds": 9.35,
+  "decisions_per_second": 245.01,
+  "mean_latency_ms_per_decision": 4.08,
+  "peak_gpu_memory_gb_torch_allocated": 0.0,
+  "peak_gpu_memory_gb_driver": 166.12,
+  "kv_cache_gb": 143.95,
+  "gpus": 1,
+  "gpu_hours": 0.0313,
+  "gpu_hours_note": "whole run from start to finish, model load included",
+  "latency_note": "scoring seconds divided by rows, with 512 prompts per batch"
+ }
+}
