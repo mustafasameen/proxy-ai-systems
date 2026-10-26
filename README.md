@@ -38,6 +38,14 @@ place the release under `data/massive_steps/new_york/` or point `PROXY_DATA_ROOT
 Venue histories can identify a person, so nothing here shows a user id, an exact time, or more than one check-in of the same
 person.
 
+## Model
+
+Llama-3.1-8B-Instruct from Meta, published on Hugging Face as
+[`meta-llama/Llama-3.1-8B-Instruct`](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct), revision
+`0e9e39f249a16976918f6564b8830bc894c89659`. It is released under the Llama 3.1 Community License and Meta's Acceptable Use
+Policy. Access is gated: each user accepts the license on Hugging Face before downloading. The repository holds no model
+weights; the scoring script loads the model by name and revision.
+
 ## Canonical configuration
 
 `src/proxy/config.py` holds one configuration. Every entry point reads its defaults from it, so a call that names no option
