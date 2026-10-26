@@ -40,26 +40,27 @@
   },
   "targets_file": "dev_rows.jsonl",
   "prompt_md5": "b023131aa67d62707f5a764e23cd7ddf",
-  "chat_prompt_md5": "bdf4bfdf3c3b0c4407dda7b8b0a489fa",
+  "chat_prompt_md5": "fb0d7be3fff451ff5eaac7adc3f489e4",
+  "prompt_input": "token ids, one begin-of-text token",
   "dry_run": false
  },
  "result": {
-  "top1": 0.3897861195984286,
+  "top1": 0.38847664775207336,
   "unparsed": 0,
   "pick_differs_from_max_logprob": 0
  },
  "constraints": {
-  "model_load_seconds": 49.0,
-  "decode_seconds": 10.52,
-  "logprob_seconds": 2.41,
-  "scoring_seconds": 12.93,
-  "decisions_per_second": 177.14,
-  "mean_latency_ms_per_decision": 5.65,
+  "model_load_seconds": 59.5,
+  "decode_seconds": 10.58,
+  "logprob_seconds": 2.07,
+  "scoring_seconds": 12.65,
+  "decisions_per_second": 181.11,
+  "mean_latency_ms_per_decision": 5.52,
   "peak_gpu_memory_gb_torch_allocated": 0.0,
   "peak_gpu_memory_gb_driver": 166.12,
   "kv_cache_gb": 143.95,
   "gpus": 1,
-  "gpu_hours": 0.0201,
+  "gpu_hours": 0.0241,
   "gpu_hours_note": "whole run from start to finish, model load included",
   "latency_note": "scoring seconds divided by rows, with 512 prompts per batch"
  }

@@ -220,7 +220,12 @@ def main():
         except (TypeError, ValueError):
             llm, logprobs_mode = LLM(**kw), "raw_logprobs"
         load_s = time.time() - t0
-        chat = chat_prompts(tok, prompts)
+        # The chat template already starts with the begin-of-text token. Passing the text to vLLM would tokenize it again and add a
+        # second one, so the prompts go in as token ids built without special tokens (one begin-of-text token, as in training).
+        chat = [{"prompt_token_ids": tok(t, add_special_tokens=False)["input_ids"]} for t in chat_prompts(tok, prompts)]
+        bad = [i for i, c in enumerate(chat) if c["prompt_token_ids"][:1] != [tok.bos_token_id] or c["prompt_token_ids"][1:].count(tok.bos_token_id)]
+        if bad:
+            raise ValueError(f"{len(bad)} prompts do not carry exactly one begin-of-text token at the start")
         ids = [tok.encode(L, add_special_tokens=False) for L in LETTERS[:k]]
         if any(len(i) != 1 for i in ids):
             raise ValueError(f"a letter is not one token: {ids}")
@@ -289,7 +294,7 @@ def main():
                          "batch_size": BATCH, "VLLM_BATCH_INVARIANT": os.environ.get("VLLM_BATCH_INVARIANT"),
                          "max_model_len": a.max_model_len, "gpu_memory_utilization": a.gpu_memory_utilization, "seed": 0},
             "versions": versions, "targets_file": targets.name, "prompt_md5": md5("\n".join(prompts)),
-            "chat_prompt_md5": md5("\n".join(chat)), "dry_run": a.dry_run,
+            "chat_prompt_md5": md5("\n".join(c if isinstance(c, str) else " ".join(map(str, c["prompt_token_ids"])) for c in chat)), "prompt_input": "token ids, one begin-of-text token", "dry_run": a.dry_run,
         },
         "result": {"top1": sum(1 for r in preds if r["pick"] == r["answer_idx"]) / n,
                    "unparsed": sum(1 for p in picks if p is None), "pick_differs_from_max_logprob": disagree},
