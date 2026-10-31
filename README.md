@@ -15,6 +15,8 @@ popularity, so popularity alone cannot give the answer away.
 | `hpc/` | scripts that write the question files, build the other-person control, and train the model adapter on a GPU cluster |
 | `hpc/requirements_hpc.txt` | pinned packages of the cluster environment that ran the GPU jobs |
 | `tests/` | tests that run on a small synthetic release |
+| `app/` | the delegate interface (React): it replays held-out decisions, asks one question when that helps, and reports how far its picks can be trusted |
+| `experiments/m4/` | the comparison of candidate models, the calibration step, the ask-rule comparison and the export of the interface data |
 | `proposal/milestone3/` | the statistics and checks reported in the Milestone 3 data document |
 | `requirements.txt` | Python packages for the notebook |
 
@@ -32,11 +34,15 @@ users at 45,804 venues, collected in 2012-13 and 2017-18.
 | license | Apache 2.0, with upstream sources Semantic Trails (CC0 1.0) and Foursquare Open Source Places (Apache 2.0) |
 | retrieved | first on August 31, 2026, and re-verified by the notebook on October 5, 2026 |
 
-The repository holds no data. The notebook downloads the file and checks its checksum. To run the code in `src/` and `hpc/`,
-place the release under `data/massive_steps/new_york/` or point `PROXY_DATA_ROOT` at a folder with that layout.
+Apart from the interface sample described below, the repository holds no data. The notebook downloads the file and checks its
+checksum. To run the code in `src/` and `hpc/`, place the release under `data/massive_steps/new_york/` or point
+`PROXY_DATA_ROOT` at a folder with that layout.
 
-Venue histories can identify a person, so nothing here shows a user id, an exact time, or more than one check-in of the same
-person.
+Venue histories can identify a person. The code and documents show no user id, no exact time and no coordinates. The one
+exception is `app/public/data/demo.json`, which the interface needs: it holds 105 held-out decisions of 12 people, each with
+that person's recent places, under the dataset's Apache 2.0 license. In that file user ids are replaced by "Person 1" to
+"Person 12", homes carry no name, and places that reveal health, religion, sexual orientation or a residence are shown only
+by a generic label such as "Health care" or "Place of worship". See `app/public/data/NOTICE.md`.
 
 ## Model
 

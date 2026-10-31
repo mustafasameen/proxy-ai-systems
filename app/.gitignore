@@ -1,0 +1,6 @@
+node_modules/
+dist/
+!package.json
+!package-lock.json
+!public/data/
+!public/data/demo.json
