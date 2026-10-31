@@ -71,16 +71,19 @@ export default function TrustReport({ data, settingIdx }) {
   const unseen = ref.unseen_people;
   const matched = ref.own_minus_stranger_matched;
 
-  const patterns = summary.error_patterns;
+  const shopping = about.domain === 'shopping';
+  const patterns = summary.error_patterns || null;
   const errorRows = Object.keys(ERROR_LABELS)
-    .filter((k) => typeof patterns[k] === 'number')
+    .filter((k) => patterns && typeof patterns[k] === 'number')
     .map((k) => ({ key: k, label: ERROR_LABELS[k], count: patterns[k] }))
     .sort((a, b) => b.count - a.count);
 
   return (
     <div className="trust">
       <section className="trust-sec" aria-labelledby="t1">
-        <h2 id="t1">How often does PROXY pick the place the person actually chose?</h2>
+        <h2 id="t1">
+          How often does PROXY pick the {shopping ? 'item the person actually bought' : 'place the person actually chose'}?
+        </h2>
         <BarChart rows={accuracyRows} caption="Share of choices where the pick matched what the person did" />
         <p className="sentence">
           On its own PROXY picks right {pct(summary.act_now_accuracy)}% of the time, against{' '}
@@ -105,12 +108,13 @@ export default function TrustReport({ data, settingIdx }) {
         <CurveChart curves={summary.curves} settings={summary.settings} selectedIdx={settingIdx} />
         <p className="sentence">{curveSentence(summary.curves, setting)}</p>
         <p className="muted small">
-          The five dots on PROXY's line are the ask settings. The filled dot is the one chosen
-          on Choose for me, {setting.label}.
+          The five dots on PROXY's line are the ask settings. The filled dot is the one selected
+          in Settings, {setting.label}.
         </p>
         <Tag>{testTag}</Tag>
       </section>
 
+      {(own || same || matched || unseen) && (
       <section className="trust-sec" aria-labelledby="t4">
         <h2 id="t4">Is it using your history, or just guessing what most people like?</h2>
         {own && stranger && (
@@ -152,7 +156,9 @@ export default function TrustReport({ data, settingIdx }) {
           </>
         )}
       </section>
+      )}
 
+      {patterns && (
       <section className="trust-sec" aria-labelledby="t5">
         <h2 id="t5">Where does it go wrong?</h2>
         <table className="err-table">
@@ -198,19 +204,18 @@ export default function TrustReport({ data, settingIdx }) {
         </p>
         <Tag>{testTag}</Tag>
       </section>
+      )}
 
-      <section className="trust-sec" aria-labelledby="t6">
-        <h2 id="t6">Who this covers</h2>
-        <ul className="cover-list">
-          <li>New York users with at least 20 check-ins (about half the users, 85% of check-ins).</li>
-          <li>People with no history: PROXY should always ask.</li>
-          <li>
-            Discretionary choices only, such as food, drinks, nightlife and shopping. Errands, trips
-            and visits to someone&apos;s home are out of scope, because no history predicts them.
-          </li>
-          <li>Tested only on New York in this app.</li>
-        </ul>
-      </section>
+      {Array.isArray(about.limitations) && about.limitations.length > 0 && (
+        <section className="trust-sec" aria-labelledby="t6">
+          <h2 id="t6">What it can&apos;t do yet</h2>
+          <ul className="cover-list">
+            {about.limitations.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

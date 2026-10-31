@@ -3,4 +3,5 @@ dist/
 !package.json
 !package-lock.json
 !public/data/
-!public/data/demo.json
+!public/data/places.json
+!public/data/shopping.json

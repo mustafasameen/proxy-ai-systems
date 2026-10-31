@@ -5,7 +5,15 @@
   "n_decisions": 2502,
   "n_people": 300,
   "model": "Llama-3.1-8B-Instruct, fine-tuned on earlier choices, then preference-trained, with one confidence temperature fitted on design-phase people",
-  "ask_rule": "asks the one yes/no category question with the most information, when the expected gain from asking is high"
+  "ask_rule": "asks the one yes/no category question with the most information, when the expected gain from asking is high",
+  "domain": "places",
+  "history_label": "recent places",
+  "limitations": [
+   "Tested on past New York check-ins from 2012-13 and 2017-18.",
+   "It does not see where you are, so two places of the same kind can look alike to it.",
+   "It needs a history. People with no history are always asked.",
+   "Errands, trips and visits to homes are hard to predict, so it asks more there."
+  ]
  },
  "summary": {
   "act_now_accuracy": 0.5024,

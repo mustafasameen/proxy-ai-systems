@@ -1,93 +1,42 @@
-const TABS = [
-  { id: 'choose', label: 'Choose for me' },
-  { id: 'trust', label: 'Can I trust it?' },
-];
+import AccountMenu from './AccountMenu.jsx';
 
-// Wordmark, section tabs, and the replay control for stepping through choices.
+// Wordmark, the Places and Shopping switch, the demo account chip and the settings button.
+// domains is [{ key, label }]. The switch is left out when there is only one domain.
 export default function TopBar({
-  tab,
-  onTab,
+  domains,
+  domain,
+  onDomain,
   people,
   personIdx,
   onPerson,
-  decisionIdx,
-  decisionCount,
-  onStep,
+  onSettings,
 }) {
-  // Arrow keys move between tabs.
-  const onTabKey = (e, i) => {
-    let next = null;
-    if (e.key === 'ArrowRight') next = (i + 1) % TABS.length;
-    if (e.key === 'ArrowLeft') next = (i - 1 + TABS.length) % TABS.length;
-    if (e.key === 'Home') next = 0;
-    if (e.key === 'End') next = TABS.length - 1;
-    if (next === null) return;
-    e.preventDefault();
-    onTab(TABS[next].id);
-    const el = document.getElementById(`tab-${TABS[next].id}`);
-    if (el) el.focus();
-  };
-
   return (
     <header className="topbar">
-      <div className="topbar-inner">
+      <div className="column topbar-inner">
         <span className="wordmark">PROXY</span>
-        <div className="tabs" role="tablist" aria-label="Sections">
-          {TABS.map((t, i) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`tab-${t.id}`}
-              aria-selected={tab === t.id}
-              aria-controls="main-panel"
-              tabIndex={tab === t.id ? 0 : -1}
-              className="tab"
-              onClick={() => onTab(t.id)}
-              onKeyDown={(e) => onTabKey(e, i)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {tab === 'choose' && (
-          <div className="replay">
-            <button
-              type="button"
-              className="btn small"
-              onClick={() => onStep(-1)}
-              aria-label="Previous choice"
-            >
-              Previous
-            </button>
-            <label className="visually-hidden" htmlFor="person-select">
-              Person
-            </label>
-            <select
-              id="person-select"
-              className="select"
-              value={personIdx}
-              onChange={(e) => onPerson(Number(e.target.value))}
-            >
-              {people.map((p, i) => (
-                <option key={p.id} value={i}>
-                  {p.id}
-                </option>
-              ))}
-            </select>
-            <span className="replay-count">
-              choice {decisionIdx + 1} of {decisionCount}
-            </span>
-            <button
-              type="button"
-              className="btn small"
-              onClick={() => onStep(1)}
-              aria-label="Next choice"
-            >
-              Next
-            </button>
+        {domains.length > 1 && (
+          <div className="domain" role="group" aria-label="What PROXY finds for you">
+            {domains.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                className="domain-btn"
+                aria-pressed={d.key === domain}
+                onClick={() => onDomain(d.key)}
+              >
+                {d.label}
+              </button>
+            ))}
           </div>
         )}
+        <AccountMenu people={people} personIdx={personIdx} onPerson={onPerson} />
+        <button type="button" className="icon-btn settings-btn" aria-label="Settings" onClick={onSettings}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M10.73 4.71L11.06 2.04L12.94 2.04L13.27 4.71A7.4 7.4 0 0 1 16.26 5.95L18.37 4.29L19.71 5.63L18.05 7.74A7.4 7.4 0 0 1 19.29 10.73L21.96 11.06L21.96 12.94L19.29 13.27A7.4 7.4 0 0 1 18.05 16.26L19.71 18.37L18.37 19.71L16.26 18.05A7.4 7.4 0 0 1 13.27 19.29L12.94 21.96L11.06 21.96L10.73 19.29A7.4 7.4 0 0 1 7.74 18.05L5.63 19.71L4.29 18.37L5.95 16.26A7.4 7.4 0 0 1 4.71 13.27L2.04 12.94L2.04 11.06L4.71 10.73A7.4 7.4 0 0 1 5.95 7.74L4.29 5.63L5.63 4.29L7.74 5.95A7.4 7.4 0 0 1 10.73 4.71Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
       </div>
     </header>
   );
