@@ -13,6 +13,7 @@ popularity, so popularity alone cannot give the answer away.
 | `src/proxy/` | data loading, the per-user split, the five-option questions, their prompts, and paired per-user statistics |
 | `src/proxy/config.py` | the canonical configuration, the one place the defaults come from |
 | `hpc/` | scripts that write the question files, build the other-person control, and train the model adapter on a GPU cluster |
+| `hpc/build_matched_stranger.py` | writes the matched-stranger control: each user's history is replaced by that of the most similar other user (same history length band, closest category profile), with no random draw |
 | `hpc/requirements_hpc.txt` | pinned packages of the cluster environment that ran the GPU jobs |
 | `tests/` | tests that run on a small synthetic release |
 | `app/` | the delegate interface (React): it replays held-out decisions, asks one question when that helps, and reports how far its picks can be trusted |
