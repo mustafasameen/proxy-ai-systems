@@ -1,0 +1,3 @@
+gradio
+scikit-learn
+prometheus_client==0.16.0
