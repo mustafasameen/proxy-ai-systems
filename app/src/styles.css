@@ -150,9 +150,9 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 
 .changed { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 16px; }
 .changed summary { cursor: pointer; font-weight: 500; min-height: 24px; }
-.changed .two-col { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
-.changed .two-col > div { padding-right: 16px; }
-.changed .col-rule { border-left: 1px solid var(--rule); padding-left: 16px; padding-right: 0; }
+.changed .two-col, .outcome-compare { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
+.changed .two-col > div, .outcome-compare > div { padding-right: 16px; }
+.changed .col-rule, .outcome-compare .col-rule { border-left: 1px solid var(--rule); padding-left: 16px; padding-right: 0; }
 .changed p:not(.kicker) { margin-top: 8px; }
 
 /* settings sheet */
@@ -352,3 +352,10 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
   .map-visit, .evidence { transition: none; }
 }
 .tally { margin-top: 8px; }
+.mechanism { margin-top: 4px; }
+.outcome-compare { margin-bottom: 8px; }
+.model-reads { margin-top: 12px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.model-reads summary { cursor: pointer; padding: 10px 0; font-size: 14px; color: var(--text); }
+.model-reads .meta { margin-bottom: 6px; }
+.model-reads .kicker { margin-top: 10px; }
+.model-input { white-space: pre-wrap; font: 12px/1.5 ui-monospace, Menlo, monospace; color: var(--text-2); max-height: 240px; overflow: auto; background: var(--surface, transparent); padding: 8px 10px; margin: 0 0 12px; }

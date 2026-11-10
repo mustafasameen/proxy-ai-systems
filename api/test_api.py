@@ -232,3 +232,13 @@ def test_context_endpoint_makes_no_model_call(monkeypatch):
     monkeypatch.setattr(core, "score_options", boom)
     j = client.post("/api/context", json={"person": "1", "decision": 0}).json()
     assert len(j["options"]) == 5 and j["n_decisions"] >= 1 and any(o["point"] for o in j["options"])
+
+
+def test_context_shows_the_exact_model_input():
+    """The disclosure shows the same text the model scores, for both domains."""
+    import app as appmod
+    for dom in ("places", "shopping"):
+        j = client.post("/api/context", json={"domain": dom, "person": "1", "decision": 0}).json()
+        d = appmod.get_decision(dom, "1", 0)
+        want = core.build_prompt_shopping(d) if dom == "shopping" else core.build_prompt(d)
+        assert j["model_input"] == want and "Answer with one letter" in want

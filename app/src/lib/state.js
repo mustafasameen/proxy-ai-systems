@@ -40,7 +40,7 @@ export function initialState() {
 }
 
 // The context (options, history, summary) is shared by /api/context and /api/pick. A pick response refreshes it.
-const CONTEXT_FIELDS = ['options', 'history', 'history_total', 'history_summary', 'n_decisions', 'live'];
+const CONTEXT_FIELDS = ['options', 'history', 'history_total', 'history_summary', 'n_decisions', 'live', 'model_input'];
 
 function contextFrom(data, previous) {
   if (!data || !Array.isArray(data.options)) return previous;
