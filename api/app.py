@@ -211,7 +211,9 @@ def context(domain, person, idx, d):
     hist = [{"name": h["name"] or h.get("category") or "", "category": h.get("category") or None,
              "point": hp[i] if i < len(hp) else None} for i, h in enumerate(d["history"])]
     return {"options": options, "history": hist[::-1], "history_total": len(d["history"]),
-            "history_summary": core.history_summary(d["history"])}
+            "history_summary": core.history_summary(d["history"]),
+            # the exact text the model scores, so the interface can show what the model reads
+            "model_input": core.build_prompt_shopping(d) if domain == "shopping" else core.build_prompt(d)}
 
 
 @app.get("/api/health")

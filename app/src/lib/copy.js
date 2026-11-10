@@ -86,7 +86,7 @@ export const COPY = {
   skip: 'Skip',
   changeAnswer: 'Change answer',
   pickKicker: 'YOUR PICK',
-  whyHeading: 'How it fits your history',
+  whyHeading: 'From their history',
   notForMe: 'Not for me',
   nextDecision: 'Next decision',
   notForYou: "Not for you. Here's the next option.",
@@ -195,7 +195,13 @@ export function offVisits(n) {
   return n === 1 ? 'One more past visit is outside this view.' : `${n} more past visits are outside this view.`;
 }
 
-export const ROLE_LINE = 'You play this person. Use what PROXY knows about them to answer as they would.';
+export const ROLE_LINE = "Answer as this person would, using their history. Skip if the evidence isn't enough.";
+export const MECHANISM = 'PROXY has already scored all five options. Your answer rules some out, and PROXY picks the highest scored option left.';
+export const LATER_PICK_NOTE = 'A match rate is shown for the first pick only.';
+export const PICKED_LABEL = 'PROXY PICKED';
+export const REAL_LABEL = 'REAL CHOICE';
+export const MODEL_READS = 'What the model reads';
+export const EXACT_INPUT = 'The exact text the model scores';
 export const SEE_REAL = 'See what this person really chose';
 export const PICK_MATCHED = "PROXY's pick matched.";
 export const PICK_MISSED = "PROXY's pick did not match.";
@@ -227,13 +233,29 @@ export function noQuestionLine(setting) {
     : "PROXY didn't ask. No answer was likely to change this pick.";
 }
 
+// The person was never asked, so their answer is inferred from the real choice and labelled as such.
 export function truthfulLine(yes, answer) {
   const t = yes ? 'Yes' : 'No';
+  let mine = '';
   if (answer === 'yes' || answer === 'no') {
-    const mine = answer === 'yes' ? 'Yes' : 'No';
-    return mine === t ? `Their real answer would have been ${t}, the same as yours.` : `Their real answer would have been ${t}. You said ${mine}.`;
+    const a = answer === 'yes' ? 'Yes' : 'No';
+    mine = a === t ? ', the same as yours' : `. You said ${a}`;
   }
-  return `Their real answer would have been ${t}.`;
+  return `Their real choice fits a ${t}${mine}. How they would really have answered is unknown.`;
+}
+
+export function ruledOutLine(answer, n) {
+  const a = answer === 'yes' ? 'Yes' : 'No';
+  if (n === 0) return `Your ${a} ruled out no options.`;
+  return `Your ${a} ruled out ${n === 1 ? '1 option' : `${n} options`}.`;
+}
+
+export function modelReadsLines(domain) {
+  return domain === 'shopping'
+    ? ["The model's saved scores came from the titles of this person's recent purchases and of the five products.",
+      'The question uses the store and category records. Your answer rules products in or out after scoring.']
+    : ['The model reads the names and kinds of the last 30 places and of the five options.',
+      'It does not see locations, the map, or times. Your answer rules options in or out after scoring.'];
 }
 
 export function youSaid(answer) {
@@ -254,7 +276,7 @@ export function andMore(n) {
 }
 
 export function settingsNote(rows, users, domain = 'places') {
-  return `Share of test decisions where PROXY's pick matched the ${dc(domain).settingsNoun}, measured on ${fmtCount(rows)} decisions from ${fmtCount(users)} people it never saw while being tuned. Asking more often generally helps.`;
+  return `Share of test decisions where PROXY's pick matched the ${dc(domain).settingsNoun}, measured on ${fmtCount(rows)} decisions from ${fmtCount(users)} people it never saw while being tuned. Answers were simulated from each real choice, so real answers may help less. Asking more often generally helps.`;
 }
 
 export function personLabel(id) {
@@ -296,7 +318,7 @@ export function allCopyStrings() {
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
   out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), endOfDecisions('1'), andMore(12));
   out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
-  out.push(tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
+  out.push(MECHANISM, LATER_PICK_NOTE, MODEL_READS, EXACT_INPUT, ruledOutLine('no', 1), ruledOutLine('yes', 3), ruledOutLine('no', 0), ...modelReadsLines('places'), ...modelReadsLines('shopping'), tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
   out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
   out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {

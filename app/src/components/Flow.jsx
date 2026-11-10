@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
-  COPY, PICK_MATCHED, PICK_MISSED, ROLE_LINE, SEE_REAL, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions,
+  COPY, LATER_PICK_NOTE, MECHANISM, PICKED_LABEL, PICK_MATCHED, PICK_MISSED, REAL_LABEL, ROLE_LINE, SEE_REAL, ruledOutLine, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions,
   errorMessage, leanLine, noQuestionLine, tallyLine, truthfulLine, workspaceTitle, youSaid,
 } from '../lib/copy.js';
 import { currentOption, isExhausted } from '../lib/flow.js';
@@ -131,6 +131,7 @@ function Question({ state, total, onAnswer }) {
       <p className="kicker">{COPY.questionKicker}</p>
       <h2 className="h-q">{state.question.text}</h2>
       {k !== null && <p className="meta keeps">{yesKeeps(k, total)}</p>}
+      <p className="meta mechanism">{MECHANISM}</p>
       {state.pendingAnswer ? (
         <p className="meta you-said">{youSaid(state.pendingAnswer)}</p>
       ) : (
@@ -149,6 +150,8 @@ function AnswerLine({ state, onChange }) {
   return (
     <p className="meta you-said asked">
       {youSaid(state.answer)}
+      {(state.answer === 'yes' || state.answer === 'no') && state.response && Array.isArray(state.response.ruled_out)
+        ? ` · ${ruledOutLine(state.answer, state.response.ruled_out.length)}` : ''}
       {' · '}
       <button type="button" className="text-link" onClick={onChange}>{COPY.changeAnswer}</button>
     </p>
@@ -196,8 +199,16 @@ export function Outcome({ state, domain, onReveal }) {
   const tally = state.tally && state.tally[domain];
   return (
     <div className="outcome" role="status">
-      <p className="kicker">{dc(domain).really}</p>
-      <p className="outcome-name">{reveal.name}</p>
+      <div className="two-col outcome-compare">
+        <div className="col-a">
+          <p className="kicker">{PICKED_LABEL}</p>
+          <p className="outcome-name">{top ? top.name : ''}</p>
+        </div>
+        <div className="col-rule col-b">
+          <p className="kicker">{REAL_LABEL}</p>
+          <p className="outcome-name">{reveal.name}</p>
+        </div>
+      </div>
       <p className={matched ? 'meta outcome-verdict matched' : 'meta outcome-verdict'}>{matched ? PICK_MATCHED : PICK_MISSED}</p>
       {yes !== null && state.answer && <p className="meta">{truthfulLine(yes, state.answer)}</p>}
       {tally && tally.seen > 0 && <p className="meta tally num">{tallyLine(tally.matched, tally.seen)}</p>}
@@ -244,6 +255,7 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
           </div>
         )}
         {conf && <p className="meta confidence"><strong>{conf.label}</strong>{conf.rest}</p>}
+        {choice.current !== 0 && <p className="meta confidence">{LATER_PICK_NOTE}</p>}
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onChoose}>{dc(domain).choose}</button>
           <button type="button" className="text-btn" onClick={onReject}>{COPY.notForMe}</button>
@@ -295,6 +307,10 @@ export default function Flow(props) {
     if (h && state.started) {
       h.setAttribute('tabindex', '-1');
       h.focus({ preventScroll: true });
+      // keep the question or pick in view on short screens, where it sits below the five options
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const action = root.querySelector('.action');
+      if (action && action.scrollIntoView) action.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
     }
   }, [key, state.started]);
 

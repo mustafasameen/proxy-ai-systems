@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { COPY, KIND_HINT, SHOW_ALL_KINDS, dc, evidenceLine, showAll } from '../lib/copy.js';
+import {
+  COPY, EXACT_INPUT, KIND_HINT, MODEL_READS, SHOW_ALL_KINDS, dc, evidenceLine, modelReadsLines, showAll,
+} from '../lib/copy.js';
 import { evidence, focusKind, sameKind, summaryLine } from '../lib/workspace.js';
 import MapView from './MapView.jsx';
 
@@ -68,6 +70,21 @@ function Recent({ history, domain, kind }) {
   );
 }
 
+function ModelReads({ domain, input }) {
+  return (
+    <details className="model-reads">
+      <summary>{MODEL_READS}</summary>
+      {modelReadsLines(domain).map((l) => <p key={l} className="meta">{l}</p>)}
+      {input && (
+        <>
+          <p className="kicker">{EXACT_INPUT}</p>
+          <pre className="model-input">{input}</pre>
+        </>
+      )}
+    </details>
+  );
+}
+
 export default function Context({
   domain, context, rows, outline, outlineFailed, bounds, state, focus, onKind = () => {}, onOption = () => {},
 }) {
@@ -80,6 +97,7 @@ export default function Context({
       <h2 className="kicker">{COPY.contextKicker}</h2>
       <p className="summary">{summaryLine(domain, context.history_total, context.history_summary)}</p>
       <Evidence domain={domain} history={history} question={question} kind={kind} />
+      <ModelReads domain={domain} input={context.model_input} />
       {domain === 'places' && (
         <>
           <MapView

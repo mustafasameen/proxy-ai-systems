@@ -74,10 +74,10 @@ describe('category line and outcome', () => {
     const miss = renderToStaticMarkup(<Outcome state={{ ...base, reveal: { answer_index: 3, name: 'Kin Shop' } }} domain="places" onReveal={() => {}} />);
     expect(miss).toContain('Kin Shop');
     expect(miss).toContain('did not match');
-    expect(miss).toContain('Their real answer would have been No. You said Yes.');
+    expect(miss).toContain("Their real choice fits a No. You said Yes. How they would really have answered is unknown.");
     const hit = renderToStaticMarkup(<Outcome state={{ ...base, answer: 'skip', reveal: { answer_index: 1, name: 'Booker' } }} domain="places" onReveal={() => {}} />);
     expect(hit).toContain('matched.');
-    expect(hit).toContain('Their real answer would have been No.');
+    expect(hit).toContain("Their real choice fits a No.");
   });
 });
 
