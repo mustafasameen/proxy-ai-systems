@@ -117,8 +117,9 @@ export function groupVisits(history) {
   for (const h of history || []) {
     if (!Array.isArray(h.point)) continue;
     const key = h.point.join(',');
-    const g = map.get(key) || { point: h.point, count: 0 };
+    const g = map.get(key) || { point: h.point, count: 0, kinds: new Set() };
     g.count += 1;
+    if (h.category) g.kinds.add(h.category.trim().toLowerCase());
     map.set(key, g);
   }
   return [...map.values()];

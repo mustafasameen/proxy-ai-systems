@@ -101,6 +101,7 @@ def test_pick_ask_then_answer_uses_cache(monkeypatch):
     monkeypatch.setattr(core, "score_options", f)
     r1 = client.post("/api/pick", json={"person": "1", "decision": 0, "setting": "Always ask"}).json()
     assert r1["stage"] == "question" and r1["question"]["text"].startswith("Are you up for")
+    assert r1["question"]["kind"] == "category" and r1["leading"]["index"] == 0   # ties rank the first option first
     r2 = client.post("/api/pick", json={"person": "1", "decision": 0, "setting": "Always ask", "answer": "yes"}).json()
     assert r2["stage"] == "pick" and r2["answer"] == "yes" and r2["cached"] is True and len(calls) == 1
     assert all(o["category"] == r1["question"]["category"] for o in r2["ranking"])

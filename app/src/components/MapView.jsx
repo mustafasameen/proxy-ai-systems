@@ -25,12 +25,16 @@ export function placeOptions(rows, project) {
   return out;
 }
 
-export default function MapView({ history, rows, outline, bounds }) {
+export default function MapView({ history, rows, outline, bounds, kind = null, focusOption = null, onOption = () => {} }) {
+  const k = kind ? kind.trim().toLowerCase() : null;
   const visits = useMemo(() => groupVisits(history), [history]);
-  const focus = useMemo(
-    () => focusPoints(rows.map((r) => r.option.point), visits.map((v) => v.point)),
-    [visits, rows],
-  );
+  // The view frames the options and nearby visits; a focused kind widens it so every visit of that kind is in view.
+  const focus = useMemo(() => {
+    const base = focusPoints(rows.map((r) => r.option.point), visits.map((v) => v.point));
+    if (!k) return base;
+    const extra = visits.filter((v) => v.kinds.has(k)).map((v) => v.point);
+    return { ...base, fit: [...base.fit, ...extra] };
+  }, [visits, rows, k]);
   const project = useMemo(() => makeProjection(focus.fit, bounds, VIEW_W, VIEW_H), [focus, bounds]);
   const offView = useMemo(
     () => visits.filter((v) => !inView(project(v.point[0], v.point[1]))).reduce((s, v) => s + v.count, 0),
@@ -55,13 +59,23 @@ export default function MapView({ history, rows, outline, bounds }) {
         {visits.map((v) => {
           const [x, y] = project(v.point[0], v.point[1]);
           if (!inView([x, y])) return null;
-          return <circle key={v.point.join(',')} cx={x} cy={y} r={visitRadius(v.count)} className="map-visit" />;
+          const cls = k ? (v.kinds.has(k) ? 'map-visit is-on' : 'map-visit is-dim') : 'map-visit';
+          return <circle key={v.point.join(',')} cx={x} cy={y} r={visitRadius(v.count)} className={cls} />;
         })}
         {optionMarks.map(({ row, x, y }) => {
           const fade = row.state === 'excluded' || row.state === 'passed';
           const isPick = row.state === 'pick';
+          const on = focusOption === row.option.index;
           return (
-            <g key={row.option.index} className={fade ? 'map-opt is-faded' : 'map-opt'}>
+            <g
+              key={row.option.index}
+              className={`map-opt${fade ? ' is-faded' : ''}${on ? ' is-focus' : ''}`}
+              onMouseEnter={() => onOption(row.option.index)}
+              onMouseLeave={() => onOption(null)}
+            >
+              <title>{row.option.name}</title>
+              <circle cx={x} cy={y} r="10" className="map-hit" />
+              {on && <text x={x} y={y - 12} textAnchor="middle" className="map-name">{row.option.name.length > 28 ? `${row.option.name.slice(0, 27)}…` : row.option.name}</text>}
               {!isPick && (
                 <>
                   <path d={DIAMOND(4)} transform={`translate(${x} ${y})`} className="map-diamond" />

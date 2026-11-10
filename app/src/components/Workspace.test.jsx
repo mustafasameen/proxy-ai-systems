@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { OptionsList } from './Flow.jsx';
+import { OptionsList, Outcome, showCategory } from './Flow.jsx';
 import MapView, { placeOptions } from './MapView.jsx';
 import { makeProjection } from '../lib/map.js';
 
@@ -51,5 +51,44 @@ describe('map view', () => {
     const project = makeProjection([[40.7, -74]]);
     const marks = placeOptions(same.map((o, i) => ({ option: o, letter: 'AB'[i], state: 'default' })), project);
     expect(marks[0].x).not.toBe(marks[1].x);
+  });
+});
+
+describe('category line and outcome', () => {
+  it('hides a category that only repeats the name', () => {
+    expect(showCategory({ name: 'Residence', category: 'residence' })).toBe(false);
+    expect(showCategory({ name: 'Babbo', category: 'Italian Restaurant' })).toBe(true);
+    expect(showCategory({ name: 'Babbo', category: null })).toBe(false);
+  });
+
+  const base = {
+    response: { ranking: [{ index: 1, name: 'Booker' }] },
+    question: { text: 'Are you up for a cafe?', category: 'Cafe', yes_idx: [0, 2] },
+    answer: 'yes',
+  };
+  it('offers the reveal before it is loaded', () => {
+    const html = renderToStaticMarkup(<Outcome state={{ ...base, reveal: null }} domain="places" onReveal={() => {}} />);
+    expect(html).toContain('See what this person really chose');
+  });
+  it('says whether the pick matched and what the truthful answer was', () => {
+    const miss = renderToStaticMarkup(<Outcome state={{ ...base, reveal: { answer_index: 3, name: 'Kin Shop' } }} domain="places" onReveal={() => {}} />);
+    expect(miss).toContain('Kin Shop');
+    expect(miss).toContain('did not match');
+    expect(miss).toContain('Their real answer would have been No. You said Yes.');
+    const hit = renderToStaticMarkup(<Outcome state={{ ...base, answer: 'skip', reveal: { answer_index: 1, name: 'Booker' } }} domain="places" onReveal={() => {}} />);
+    expect(hit).toContain('matched.');
+    expect(hit).toContain('Their real answer would have been No.');
+  });
+});
+
+describe('linked map focus', () => {
+  it('highlights visits of the focused kind and names the focused option', () => {
+    const history = [{ name: 'X', category: 'Cafe', point: [40.73, -74.0] }, { name: 'Y', category: 'Park', point: [40.74, -73.99] }];
+    const html = renderToStaticMarkup(
+      <MapView history={history} rows={[row(0, 'default'), row(1, 'default')]} outline={null} bounds={null} kind="cafe" focusOption={1} />,
+    );
+    expect(html).toContain('map-visit is-on');
+    expect(html).toContain('map-visit is-dim');
+    expect(html).toContain('class="map-name"');
   });
 });

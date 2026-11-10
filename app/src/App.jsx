@@ -33,6 +33,11 @@ export default function App() {
   const [outline, setOutline] = useState(null);
   const [outlineFailed, setOutlineFailed] = useState(false);
   const wide = useWide();
+  // What the person is looking at in the context panel: a kind of place (or store) and an option. Reset per decision.
+  const [focus, setFocus] = useState({ kind: null, option: null });
+  useEffect(() => { setFocus({ kind: null, option: null }); }, [state.domain, state.person, state.decision]);
+  const setKind = (kind) => setFocus((f) => ({ ...f, kind: f.kind === kind ? null : kind }));
+  const setOption = (option) => setFocus((f) => (f.option === option ? f : { ...f, option }));
   const inflight = useRef(null);
   const slowTimer = useRef(null);
   const settingsButton = useRef(null);
@@ -146,6 +151,10 @@ export default function App() {
       domain={domain}
       context={state.context}
       rows={rows}
+      state={state}
+      focus={focus}
+      onKind={setKind}
+      onOption={setOption}
       outline={outline}
       outlineFailed={outlineFailed && !outline}
       bounds={config && config.map ? config.map.bounds : null}
@@ -183,6 +192,8 @@ export default function App() {
             onRestart={() => { stop(); dispatch({ type: 'RESTART' }); }}
             onSettings={() => dispatch({ type: 'OPEN_SETTINGS' })}
             onReveal={onReveal}
+            focus={focus}
+            onOption={setOption}
             onCancel={onCancel}
             onRetry={retry}
             onRetryContext={() => dispatch({ type: 'CONTEXT_RETRY' })}

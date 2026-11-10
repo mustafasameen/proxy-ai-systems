@@ -59,7 +59,7 @@ Then start the app (`cd app && npm run dev`) and open http://localhost:5174.
 | `GET /api/config?domain=places` | Demo people, the five ask settings with their measured match rates, evaluation summary, map bounds |
 | `POST /api/context` | The five options and the person's shown history for one decision, without calling the model |
 | `POST /api/pick` | One step of a decision: returns `stage: "question"` or `stage: "pick"`, with the same context fields |
-| `POST /api/reveal` | Developer view only: the option the person really chose |
+| `POST /api/reveal` | The option the person really chose, shown after a choice is made |
 | `GET /metrics` | Prometheus metrics: requests, latency, gateway errors, questions asked |
 
 Errors come back as `{"detail": {"error": code, "message": text}}` with these codes: `unknown_person` and

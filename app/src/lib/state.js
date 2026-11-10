@@ -11,6 +11,7 @@ const FLOW_RESET = {
   slow: false,
   pendingAnswer: null,
   question: null,
+  leading: null,
   answer: null,
   response: null,
   choice: null,
@@ -85,7 +86,7 @@ export function reducer(state, action) {
         contextError: Array.isArray(data.options) ? null : state.contextError,
       };
       if (data.stage === 'question') {
-        return { ...common, phase: 'question', question: data.question, answer: null, response: null, choice: null };
+        return { ...common, phase: 'question', question: data.question, leading: data.leading || null, answer: null, response: null, choice: null };
       }
       return {
         ...common,
