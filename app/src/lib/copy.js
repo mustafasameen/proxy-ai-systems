@@ -213,6 +213,10 @@ export function evidenceLine(domain, ev) {
   return `Of their last ${ev.total} places, ${what} ${ev.category.toLowerCase()}.`;
 }
 
+export function tallyLine(matched, seen) {
+  return `This session: PROXY's first pick matched ${matched} of ${seen}.`;
+}
+
 export function leanLine(name) {
   return `Without an answer, PROXY would pick ${name}.`;
 }
@@ -292,7 +296,7 @@ export function allCopyStrings() {
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
   out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), endOfDecisions('1'), andMore(12));
   out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
-  out.push(KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
+  out.push(tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
   out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
   out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {

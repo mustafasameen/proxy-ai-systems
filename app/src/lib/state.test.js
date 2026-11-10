@@ -312,3 +312,21 @@ describe('moving between decisions', () => {
     expect(reducer(s, { type: 'RESTART' }).decision).toBe(0);
   });
 });
+
+describe('session score', () => {
+  const finished = (choice) => ({
+    ...initialState(), response: { ranking: [{ index: 2 }, { index: 0 }] }, choice,
+  });
+  it('counts a decision once, after it is finished, by the first pick', () => {
+    let s = finished({ accepted: true, current: 0, rejected: [], ranking: [] });
+    s = reducer(s, { type: 'REVEAL', person: s.person, decision: s.decision, data: { answer_index: 2 } });
+    expect(s.tally.places).toMatchObject({ matched: 1, seen: 1 });
+    s = reducer(s, { type: 'REVEAL', person: s.person, decision: s.decision, data: { answer_index: 2 } });
+    expect(s.tally.places.seen).toBe(1);
+  });
+  it('does not count a reveal before the user has chosen', () => {
+    let s = finished({ accepted: false, current: 0, rejected: [], ranking: [{ index: 2 }] });
+    s = reducer(s, { type: 'REVEAL', person: s.person, decision: s.decision, data: { answer_index: 0 } });
+    expect(s.tally.places.seen).toBe(0);
+  });
+});

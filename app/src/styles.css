@@ -351,3 +351,4 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) {
   .map-visit, .evidence { transition: none; }
 }
+.tally { margin-top: 8px; }

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
   COPY, PICK_MATCHED, PICK_MISSED, ROLE_LINE, SEE_REAL, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions,
-  errorMessage, leanLine, noQuestionLine, truthfulLine, workspaceTitle, youSaid,
+  errorMessage, leanLine, noQuestionLine, tallyLine, truthfulLine, workspaceTitle, youSaid,
 } from '../lib/copy.js';
 import { currentOption, isExhausted } from '../lib/flow.js';
 import { canSelect, optionRows, positionOf, yesKeeps } from '../lib/workspace.js';
@@ -193,12 +193,14 @@ export function Outcome({ state, domain, onReveal }) {
   const matched = Boolean(top) && top.index === reveal.answer_index;
   const q = state.question;
   const yes = q && Array.isArray(q.yes_idx) ? q.yes_idx.includes(reveal.answer_index) : null;
+  const tally = state.tally && state.tally[domain];
   return (
     <div className="outcome" role="status">
       <p className="kicker">{dc(domain).really}</p>
       <p className="outcome-name">{reveal.name}</p>
       <p className={matched ? 'meta outcome-verdict matched' : 'meta outcome-verdict'}>{matched ? PICK_MATCHED : PICK_MISSED}</p>
       {yes !== null && state.answer && <p className="meta">{truthfulLine(yes, state.answer)}</p>}
+      {tally && tally.seen > 0 && <p className="meta tally num">{tallyLine(tally.matched, tally.seen)}</p>}
     </div>
   );
 }
