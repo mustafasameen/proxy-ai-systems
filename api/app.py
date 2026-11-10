@@ -191,12 +191,13 @@ def question_of(domain, probs, decision):
         if q is None:
             return None
         gain, item, S = q
-        return gain, {"text": item["text"], "category": item["label"].split(":", 1)[1], "yes_idx": S}, S
+        kind, value = item["label"].split(":", 1)
+        return gain, {"text": item["text"], "category": value, "kind": kind, "yes_idx": S}, S
     q = core.best_question(probs, decision["candidates"])
     if q is None:
         return None
     gain, cat, S = q
-    return gain, {"text": core.question_text(cat), "category": cat, "yes_idx": S}, S
+    return gain, {"text": core.question_text(cat), "category": cat, "kind": "category", "yes_idx": S}, S
 
 
 def context(domain, person, idx, d):
@@ -253,7 +254,7 @@ def pick(body: PickIn, request: Request):
     out.update(context(body.domain, body.person, body.decision, d))
     if ask and body.answer is None:
         ASKED.labels(body.setting).inc()
-        out.update(stage="question", question=q[1])
+        out.update(stage="question", question=q[1], leading=option(body.domain, d, core.ranked(probs)[0]))
         return out
     answered = ask and body.answer in ("yes", "no")
     now = core.after_answer(probs, q[2], body.answer) if answered else probs
@@ -291,7 +292,7 @@ def decision_context(body: RevealIn):
 
 @app.post("/api/reveal")
 def reveal(body: RevealIn):
-    """Developer view only: the place the person actually chose."""
+    """The option the person actually chose, shown after a choice is made and in the developer view."""
     d = get_decision(body.domain, body.person, body.decision)
     return {"answer_index": d["answer_idx"], "name": option(body.domain, d, d["answer_idx"])["name"]}
 

@@ -240,3 +240,22 @@ one category, video games." and "It sees product titles, not prices or reviews."
 ### Copy rules
 
 Unchanged (no dashes, exclamation marks or semicolons in UI copy; numbers only from the API).
+
+## 7. Playing the person (v2.1)
+
+The user plays the person whose history is shown, so every screen gives what a human needs to answer and a way to check.
+
+- **Role line.** Above the question: "You play this person. Use what PROXY knows about them to answer as they would."
+- **Current lean.** "Without an answer, PROXY would pick B." The question response carries `leading`, the top option before any answer.
+- **Evidence for the question.** The context panel counts the history entries of the asked kind ("Of their last 30 places,
+  0 were a cocktail bar."), highlights them on the map and in the recent list, and widens the map to include them. Shopping
+  counts purchases from the asked store; a product-category question shows no count, because the history does not record it.
+- **Linked context.** Selecting a kind under Most frequent highlights its visits on the map and lists every matching entry
+  under Recent; Clear resets it. Hovering or focusing an option row enlarges its map marker and names it on the map.
+- **No question.** When PROXY does not ask, one line says why: no answer was likely to change the pick, or the setting is
+  Never ask.
+- **Payoff.** After a choice (or after every option is turned down), "See what this person really chose" shows the real
+  choice, whether PROXY's first pick matched, and the truthful answer to the question beside the user's own.
+- **Category line.** Hidden when it only repeats the name (generic places such as Residence).
+- **Pick heading.** "How it fits your history" replaces "Why this pick", since the line describes the history, not the
+  model's reasoning.

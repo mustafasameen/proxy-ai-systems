@@ -319,3 +319,36 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
   .opt, .map-opt, .opt-main { transition: none; }
   .pick-block, .map-pick, .changed[open] .col-a, .changed[open] .col-b { animation: none; }
 }
+
+/* role, lean and outcome lines (v2.1) */
+.role { margin-bottom: 4px; }
+.lean { margin-bottom: 16px; color: var(--text); }
+.no-question { margin-bottom: 12px; }
+.outcome { border-top: 1px solid var(--rule); padding-top: 16px; margin-top: 16px; }
+.outcome .kicker { margin-bottom: 4px; }
+.outcome-name { font-size: 1.125rem; font-weight: 500; color: var(--text); }
+.outcome-verdict { margin-top: 4px; }
+.outcome-verdict.matched { color: var(--text); font-weight: 500; }
+
+/* linked context: kinds, evidence and option focus (v2.1) */
+.freq-head { display: flex; justify-content: space-between; align-items: baseline; }
+.freq-btn { all: unset; display: block; width: 100%; cursor: pointer; border-radius: 2px; }
+.freq-btn:focus-visible { outline: 2px solid var(--focus, var(--text)); outline-offset: 2px; }
+.freq-btn:hover .freq-row span:first-child, .freq-btn.is-on .freq-row span:first-child { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.freq-btn.is-on .bar span { background: var(--accent-blue); }
+.evidence { margin-top: 8px; font-size: 14px; color: var(--text); border-left: 2px solid var(--rule); padding-left: 10px; transition: border-color 220ms ease-out; }
+.evidence.is-on { border-left-color: var(--accent-blue); }
+.recent li.is-on > span:first-child { color: var(--text); font-weight: 500; }
+.recent li.is-on { box-shadow: inset 2px 0 0 var(--accent-blue); padding-left: 8px; }
+.map-visit { transition: fill-opacity 220ms ease-out, fill 220ms ease-out; }
+.map-visit.is-on { fill: var(--accent-blue); fill-opacity: 0.9; }
+.map-visit.is-dim { fill-opacity: 0.18; }
+.map-hit { fill: transparent; }
+.map-opt { cursor: default; }
+.map-opt.is-focus .map-diamond { transform-box: fill-box; transform-origin: center; }
+.map-name { font-size: 11px; font-weight: 500; fill: var(--text); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+.opt.is-focus .opt-name { text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .map-visit, .evidence { transition: none; }
+}
+.tally { margin-top: 8px; }

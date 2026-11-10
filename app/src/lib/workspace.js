@@ -62,3 +62,26 @@ export function summaryLine(domain, total, summary) {
 export function yesKeeps(k, total) {
   return `A yes keeps ${k} of these ${total} ${total === 1 ? 'option' : 'options'}.`;
 }
+
+// The history entries that bear on a question: places of the asked kind, or purchases from the asked store.
+// Only kinds the shown history records can be counted; a question about a product category returns null.
+export function sameKind(a, b) {
+  return Boolean(a) && Boolean(b) && a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+export function evidence(history, question) {
+  if (!question || !question.category || !Array.isArray(history)) return null;
+  if (question.kind && question.kind !== 'category' && question.kind !== 'store') return null;
+  const count = history.filter((h) => sameKind(h.category, question.category)).length;
+  return { count, total: history.length, category: question.category };
+}
+
+// The kind the context panel highlights: the one the person picked, else the one PROXY is asking about.
+export function focusKind(focus, state) {
+  if (focus && focus.kind) return focus.kind;
+  if (state.phase === 'question' && state.question && state.question.category
+    && (!state.question.kind || state.question.kind === 'category' || state.question.kind === 'store')) {
+    return state.question.category;
+  }
+  return null;
+}

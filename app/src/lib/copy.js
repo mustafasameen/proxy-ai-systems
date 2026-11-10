@@ -86,7 +86,7 @@ export const COPY = {
   skip: 'Skip',
   changeAnswer: 'Change answer',
   pickKicker: 'YOUR PICK',
-  whyHeading: 'Why this pick',
+  whyHeading: 'How it fits your history',
   notForMe: 'Not for me',
   nextDecision: 'Next decision',
   notForYou: "Not for you. Here's the next option.",
@@ -127,6 +127,7 @@ export const DOMAIN_COPY = {
     tab: 'Places',
     kicker: 'PLACES · NEW YORK CITY',
     sub: 'PROXY is choosing from five places this person has never been to.',
+    really: 'This person really went to',
     source: 'Live: Llama 3.3 70B through UF NaviGator',
     choose: 'Choose this place',
     recent: 'Recent',
@@ -145,6 +146,7 @@ export const DOMAIN_COPY = {
     tab: 'Shopping',
     kicker: 'SHOPPING · VIDEO GAMES',
     sub: 'PROXY is choosing from five products this person has never bought.',
+    really: 'This person really bought',
     source: 'Replay: saved scores of the fine-tuned model. No model call.',
     choose: 'Choose this item',
     recent: 'Recent purchases',
@@ -191,6 +193,47 @@ export function decisionOf(index, total) {
 // Past visits that fall outside the map's view, which centres on the options.
 export function offVisits(n) {
   return n === 1 ? 'One more past visit is outside this view.' : `${n} more past visits are outside this view.`;
+}
+
+export const ROLE_LINE = 'You play this person. Use what PROXY knows about them to answer as they would.';
+export const SEE_REAL = 'See what this person really chose';
+export const PICK_MATCHED = "PROXY's pick matched.";
+export const PICK_MISSED = "PROXY's pick did not match.";
+
+export const KIND_HINT = 'Select a kind to see where it shows up.';
+export const SHOW_ALL_KINDS = 'Clear';
+
+export function evidenceLine(domain, ev) {
+  const n = ev.count;
+  if (domain === 'shopping') {
+    const what = n === 1 ? '1 was' : `${n} were`;
+    return `Of their last ${ev.total} purchases, ${what} from ${ev.category}.`;
+  }
+  const what = n === 1 ? '1 was a' : `${n} were a`;
+  return `Of their last ${ev.total} places, ${what} ${ev.category.toLowerCase()}.`;
+}
+
+export function tallyLine(matched, seen) {
+  return `This session: PROXY's first pick matched ${matched} of ${seen}.`;
+}
+
+export function leanLine(name) {
+  return `Without an answer, PROXY would pick ${name}.`;
+}
+
+export function noQuestionLine(setting) {
+  return setting === 'Never ask'
+    ? "PROXY didn't ask, because it is set to never ask."
+    : "PROXY didn't ask. No answer was likely to change this pick.";
+}
+
+export function truthfulLine(yes, answer) {
+  const t = yes ? 'Yes' : 'No';
+  if (answer === 'yes' || answer === 'no') {
+    const mine = answer === 'yes' ? 'Yes' : 'No';
+    return mine === t ? `Their real answer would have been ${t}, the same as yours.` : `Their real answer would have been ${t}. You said ${mine}.`;
+  }
+  return `Their real answer would have been ${t}.`;
 }
 
 export function youSaid(answer) {
@@ -253,7 +296,7 @@ export function allCopyStrings() {
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
   out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), endOfDecisions('1'), andMore(12));
   out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
-  out.push(offVisits(1), offVisits(7));
+  out.push(tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
   out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
   out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {

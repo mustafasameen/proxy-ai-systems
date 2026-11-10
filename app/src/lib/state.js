@@ -1,5 +1,5 @@
 // The app's state machine as a pure reducer, so the lifecycle is testable without a browser.
-import { initChoice, rejectCurrent, selectOption, accept } from './flow.js';
+import { initChoice, rejectCurrent, selectOption, accept, isExhausted } from './flow.js';
 
 export const DEFAULT_SETTING = 'When unsure';
 
@@ -11,6 +11,7 @@ const FLOW_RESET = {
   slow: false,
   pendingAnswer: null,
   question: null,
+  leading: null,
   answer: null,
   response: null,
   choice: null,
@@ -32,6 +33,7 @@ export function initialState() {
     view: 'main', // main | about
     settingsOpen: false,
     devView: false,
+    tally: { places: { matched: 0, seen: 0, keys: [] }, shopping: { matched: 0, seen: 0, keys: [] } },
     ...CONTEXT_RESET,
     ...FLOW_RESET,
   };
@@ -50,6 +52,17 @@ function contextFrom(data, previous) {
 // Moves to another decision: the flow resets and the context is dropped so it can be loaded again.
 function moveTo(state, changes) {
   return { ...state, ...FLOW_RESET, ...CONTEXT_RESET, ...changes, epoch: state.epoch + 1 };
+}
+
+// The session score: each decision counts once, and only after the user has finished it (chosen or turned all down),
+// so a developer-view reveal before choosing does not count.
+export function countOutcome(state, data) {
+  const t = state.tally && state.tally[state.domain];
+  const done = state.choice && (state.choice.accepted || isExhausted(state.choice));
+  const key = `${state.person}|${state.decision}`;
+  if (!t || !done || !state.response || !state.response.ranking.length || t.keys.includes(key)) return state.tally;
+  const matched = state.response.ranking[0].index === data.answer_index ? 1 : 0;
+  return { ...state.tally, [state.domain]: { matched: t.matched + matched, seen: t.seen + 1, keys: [...t.keys, key] } };
 }
 
 export function reducer(state, action) {
@@ -85,7 +98,7 @@ export function reducer(state, action) {
         contextError: Array.isArray(data.options) ? null : state.contextError,
       };
       if (data.stage === 'question') {
-        return { ...common, phase: 'question', question: data.question, answer: null, response: null, choice: null };
+        return { ...common, phase: 'question', question: data.question, leading: data.leading || null, answer: null, response: null, choice: null };
       }
       return {
         ...common,
@@ -128,7 +141,7 @@ export function reducer(state, action) {
       return state.choice ? { ...state, choice: accept(state.choice), notice: null } : state;
     case 'REVEAL':
       if (action.person !== state.person || action.decision !== state.decision) return state;
-      return { ...state, reveal: action.data };
+      return { ...state, reveal: action.data, tally: countOutcome(state, action.data) };
     case 'CONTEXT_RETRY':
       return { ...state, epoch: state.epoch + 1, contextStatus: 'loading', contextError: null };
     case 'CONTEXT_REQUEST':

@@ -94,6 +94,8 @@ try {
   await sleep(500);
   await shot('04_what_changed');
   await click('Choose this place');
+  await click('See what this person really chose');
+  await waitFor(hasText("PROXY's pick"));
   await sleep(300);
   await shot('05_chosen');
   await click('Settings');

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
-  COPY, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions, errorMessage, workspaceTitle, youSaid,
+  COPY, PICK_MATCHED, PICK_MISSED, ROLE_LINE, SEE_REAL, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions,
+  errorMessage, leanLine, noQuestionLine, tallyLine, truthfulLine, workspaceTitle, youSaid,
 } from '../lib/copy.js';
 import { currentOption, isExhausted } from '../lib/flow.js';
 import { canSelect, optionRows, positionOf, yesKeeps } from '../lib/workspace.js';
@@ -49,6 +50,11 @@ function RealMark({ revealed, option }) {
   return <span className="real"> {COPY.realChoice}</span>;
 }
 
+// A generic place (a residence, a clinic) is named by its kind, so the kind line would only repeat the name.
+export function showCategory(option) {
+  return Boolean(option.category) && option.category.trim().toLowerCase() !== String(option.name).trim().toLowerCase();
+}
+
 function metaFor(row) {
   if (row.state === 'kept') return COPY.keptIfYes;
   if (row.state === 'excluded') return COPY.excluded;
@@ -57,7 +63,7 @@ function metaFor(row) {
   return '';
 }
 
-export function OptionsList({ rows, phase, choice, reveal, onSelect }) {
+export function OptionsList({ rows, phase, choice, reveal, onSelect, focusOption = null, onOption = () => {} }) {
   return (
     <ol className="options" aria-label={COPY.optionsLabel}>
       {rows.map((row) => {
@@ -69,7 +75,7 @@ export function OptionsList({ rows, phase, choice, reveal, onSelect }) {
             {Array.isArray(option.point) ? <Diamond pick={row.state === 'pick'} /> : <span className="diamond" aria-hidden="true" />}
             <span className="opt-text">
               <span className={option.name.length > 60 ? 'opt-name long' : 'opt-name'}>{option.name}</span>
-              {option.category && <span className="opt-cat">{option.category}</span>}
+              {showCategory(option) && <span className="opt-cat">{option.category}</span>}
               {(meta || (reveal && reveal.answer_index === option.index)) && (
                 <span className={row.state === 'kept' ? 'opt-meta kept' : 'opt-meta'}>
                   {meta}
@@ -80,7 +86,15 @@ export function OptionsList({ rows, phase, choice, reveal, onSelect }) {
           </>
         );
         return (
-          <li key={option.index} className={`opt opt-${row.state}`} data-state={row.state}>
+          <li
+            key={option.index}
+            className={`opt opt-${row.state}${focusOption === option.index ? ' is-focus' : ''}`}
+            data-state={row.state}
+            onMouseEnter={() => onOption(option.index)}
+            onMouseLeave={() => onOption(null)}
+            onFocus={() => onOption(option.index)}
+            onBlur={() => onOption(null)}
+          >
             {canSelect(row, phase, choice) ? (
               <button type="button" className="opt-main opt-button" onClick={() => onSelect(positionOf(choice, option.index))}>
                 {inner}
@@ -112,6 +126,8 @@ function Question({ state, total, onAnswer }) {
   const k = Array.isArray(state.question.yes_idx) ? state.question.yes_idx.length : null;
   return (
     <div>
+      <p className="meta role">{ROLE_LINE}</p>
+      {state.leading && <p className="meta lean">{leanLine(state.leading.name)}</p>}
       <p className="kicker">{COPY.questionKicker}</p>
       <h2 className="h-q">{state.question.text}</h2>
       {k !== null && <p className="meta keeps">{yesKeeps(k, total)}</p>}
@@ -164,7 +180,32 @@ function Changed({ response }) {
   );
 }
 
-function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer }) {
+export function Outcome({ state, domain, onReveal }) {
+  const { reveal, response } = state;
+  if (!reveal) {
+    return (
+      <div className="outcome">
+        <button type="button" className="secondary-btn" onClick={onReveal}>{SEE_REAL}</button>
+      </div>
+    );
+  }
+  const top = response && response.ranking[0];
+  const matched = Boolean(top) && top.index === reveal.answer_index;
+  const q = state.question;
+  const yes = q && Array.isArray(q.yes_idx) ? q.yes_idx.includes(reveal.answer_index) : null;
+  const tally = state.tally && state.tally[domain];
+  return (
+    <div className="outcome" role="status">
+      <p className="kicker">{dc(domain).really}</p>
+      <p className="outcome-name">{reveal.name}</p>
+      <p className={matched ? 'meta outcome-verdict matched' : 'meta outcome-verdict'}>{matched ? PICK_MATCHED : PICK_MISSED}</p>
+      {yes !== null && state.answer && <p className="meta">{truthfulLine(yes, state.answer)}</p>}
+      {tally && tally.seen > 0 && <p className="meta tally num">{tallyLine(tally.matched, tally.seen)}</p>}
+    </div>
+  );
+}
+
+function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer, onReveal }) {
   const { response, choice } = state;
   const option = currentOption(choice);
   const conf = choice.current === 0 ? confidenceParts(response.confidence) : null;
@@ -174,6 +215,7 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
     main = (
       <div className="pick-block" key="accepted">
         <h2 className={big}>{accepted(option.name)}</h2>
+        <Outcome state={state} domain={domain} onReveal={onReveal} />
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onNext}>{COPY.nextDecision}</button>
         </div>
@@ -183,6 +225,7 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
     main = (
       <div className="pick-block" key="exhausted">
         <h2 className={big}>{allRejected(total)}</h2>
+        <Outcome state={state} domain={domain} onReveal={onReveal} />
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onNext}>{COPY.nextDecision}</button>
         </div>
@@ -193,7 +236,7 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
       <div className="pick-block" key={`pick-${option.index}`}>
         <p className="kicker">{COPY.pickKicker}</p>
         <h2 className={big}>{option.name}<RealMark revealed={state.reveal} option={option} /></h2>
-        {option.category && <p className="category">{option.category}</p>}
+        {showCategory(option) && <p className="category">{option.category}</p>}
         {option.reason && (
           <div className="why">
             <p className="kicker">{COPY.whyHeading}</p>
@@ -211,6 +254,7 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
   return (
     <div>
       <AnswerLine state={state} onChange={onChangeAnswer} />
+      {!response.question && <p className="meta no-question">{noQuestionLine(state.setting)}</p>}
       {main}
       <Changed response={response} />
     </div>
@@ -278,7 +322,15 @@ export default function Flow(props) {
         state.contextStatus === 'error' ? (
           <ErrorLine error={state.contextError} onRetry={props.onRetryContext} />
         ) : state.context ? (
-          <OptionsList rows={rows} phase={state.phase} choice={state.choice} reveal={state.reveal} onSelect={onSelect} />
+          <OptionsList
+            rows={rows}
+            phase={state.phase}
+            choice={state.choice}
+            reveal={state.reveal}
+            onSelect={onSelect}
+            focusOption={props.focus ? props.focus.option : null}
+            onOption={props.onOption}
+          />
         ) : (
           <p className="meta loading-options">{COPY.loadingOptions}</p>
         )
