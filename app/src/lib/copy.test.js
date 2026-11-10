@@ -1,11 +1,17 @@
 import { describe, it, expect } from 'vitest';
+import { summaryLine, yesKeeps } from './workspace.js';
 import {
-  allCopyStrings, askRateText, errorMessage, numberWord, confidenceParts, allRejected, endOfDecisions, COPY, pct,
+  allCopyStrings, askRateText, errorMessage, numberWord, confidenceParts, allRejected, endOfDecisions, COPY, pct, workspaceTitle,
 } from './copy.js';
 
 describe('copy rules', () => {
   it('uses no em or en dashes, exclamation marks or semicolons', () => {
-    const strings = allCopyStrings();
+    const strings = [
+      ...allCopyStrings(),
+      summaryLine('places', 30, [{ category: 'Park', count: 2 }, { category: 'Theater', count: 2 }, { category: 'Boat or Ferry', count: 2 }]),
+      summaryLine('shopping', 6, [{ category: 'Nintendo', count: 2 }, { category: 'PlayStation', count: 1 }]),
+      yesKeeps(2, 5), yesKeeps(1, 5),
+    ];
     expect(strings.length).toBeGreaterThan(40);
     for (const s of strings) {
       expect(s, s).not.toMatch(/[—–!;]/);
@@ -13,7 +19,9 @@ describe('copy rules', () => {
   });
 
   it('matches the spec copy for key lines', () => {
-    expect(COPY.startTitle).toBe('Find somewhere new.');
+    expect(workspaceTitle('places', '2')).toBe('Where should Person 2 go next?');
+    expect(workspaceTitle('shopping', '2')).toBe('What will Person 2 buy next?');
+    expect(COPY.startButton).toBe('Let PROXY choose');
     expect(COPY.notForYou).toBe("Not for you. Here's the next option.");
     expect(allRejected(5)).toBe("That's all five options.");
     expect(endOfDecisions('1')).toBe("That's all the decisions for Person 1.");

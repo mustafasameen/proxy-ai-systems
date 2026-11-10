@@ -59,7 +59,7 @@ async function waitFor(expr, ms = 20000) {
   }
   throw new Error(`timed out waiting for ${expr}`);
 }
-const hasText = (t) => `[...document.querySelectorAll('button, summary, a, h1, h2, p')].some(e => e.textContent.trim().startsWith(${JSON.stringify(t)}))`;
+const hasText = (t) => `[...document.querySelectorAll('button, summary, a, h1, h2, h3, p')].some(e => e.textContent.trim().startsWith(${JSON.stringify(t)}))`;
 async function click(t) {
   const ok = await evaluate(`(() => { const e = [...document.querySelectorAll('button, summary, a')].find(e => e.textContent.trim().startsWith(${JSON.stringify(t)})); if (!e) return false; e.click(); return true; })()`);
   if (!ok) throw new Error(`no control "${t}"`);
@@ -77,19 +77,22 @@ async function shot(name) {
 await send('Page.enable');
 await send('Runtime.enable');
 try {
-  await viewport(1280, 820);
+  await viewport(1440, 900);
   await open();
-  await shot('01_start');
-  await click('Find me a place');
+  await waitFor(hasText('Let PROXY choose'));
+  await sleep(800);
+  await shot('01_workspace');
+  await click('Let PROXY choose');
   await waitFor(hasText('Yes') + " && " + hasText('Skip'));
+  await sleep(300);
   await shot('02_question');
   await click('No');
   await waitFor(hasText('Choose this place'));
+  await sleep(500);
   await shot('03_pick_after_answer');
   await click('What did your answer change?');
-  await click('See all options');
-  await sleep(300);
-  await shot('04_options_and_what_changed');
+  await sleep(500);
+  await shot('04_what_changed');
   await click('Choose this place');
   await sleep(300);
   await shot('05_chosen');
@@ -100,21 +103,36 @@ try {
   await sleep(400);
   await shot('07_about');
 
-  await viewport(1280, 820, false, true);
   await open();
-  await click('Find me a place');
+  await click('Shopping');
+  await waitFor(hasText('Let PROXY choose'));
+  await sleep(600);
+  await click('Let PROXY choose');
+  await waitFor(hasText('Choose this item') + " || " + hasText('Skip'));
+  await sleep(300);
+  await shot('08_shopping');
+
+  await viewport(1440, 900, false, true);
+  await open();
+  await waitFor(hasText('Let PROXY choose'));
+  await click('Let PROXY choose');
   await waitFor(hasText('Yes') + " && " + hasText('Skip'));
   await click('Yes');
   await waitFor(hasText('Choose this place'));
-  await shot('08_pick_dark');
+  await sleep(500);
+  await shot('09_pick_dark');
 
   await viewport(390, 844, true);
   await open();
-  await click('Find me a place');
+  await waitFor(hasText('Let PROXY choose'));
+  await click('Let PROXY choose');
   await waitFor(hasText('Yes') + " && " + hasText('Skip'));
   await click('Skip');
   await waitFor(hasText('Choose this place'));
-  await shot('09_pick_phone');
+  await sleep(400);
+  await shot('10_pick_phone');
+  const sw = await evaluate('document.documentElement.scrollWidth');
+  console.log('phone scrollWidth', sw);
 } catch (e) {
   console.error(e.message);
   process.exitCode = 1;

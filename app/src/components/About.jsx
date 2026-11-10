@@ -1,14 +1,15 @@
-import { COPY, evalSentences } from '../lib/copy.js';
+import { COPY, dc, evalSentences } from '../lib/copy.js';
 
-export default function About({ config, onBack }) {
+export default function About({ domain, config, onBack }) {
   const ev = config && config.evaluation;
+  const d = dc(domain);
   return (
     <article className="about">
       <button type="button" className="text-link back" onClick={onBack}>{COPY.back}</button>
       <h1 className="h-start">{COPY.aboutTitle}</h1>
       <section>
         <h2 className="kicker">{COPY.uses}</h2>
-        <p>{COPY.usesBody}</p>
+        <p>{d.usesBody}</p>
       </section>
       <section>
         <h2 className="kicker">{COPY.evaluated}</h2>
@@ -16,12 +17,12 @@ export default function About({ config, onBack }) {
       </section>
       <section>
         <h2 className="kicker">{COPY.modelHeading}</h2>
-        <p>{COPY.modelBody}</p>
+        <p>{d.modelBody}</p>
       </section>
       <section>
         <h2 className="kicker">{COPY.limitsHeading}</h2>
         <ul className="plain-list">
-          {COPY.limits.map((l) => <li key={l}>{l}</li>)}
+          {d.limits.map((l) => <li key={l}>{l}</li>)}
         </ul>
       </section>
     </article>

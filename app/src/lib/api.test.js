@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { request, postPick, getConfig, codeFromResponse, ApiError } from './api.js';
+import { request, postPick, postContext, postReveal, getConfig, getOutline, codeFromResponse, ApiError } from './api.js';
 
 function jsonResponse(status, body) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -26,7 +26,7 @@ describe('request', () => {
     const [url, init] = f.mock.calls[0];
     expect(url).toBe('http://localhost:8787/api/pick');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual({ person: '1', decision: 0, setting: 'When unsure', answer: null });
+    expect(JSON.parse(init.body)).toEqual({ domain: 'places', person: '1', decision: 0, setting: 'When unsure', answer: null });
   });
 
   it('gets config with GET and no body', async () => {
@@ -35,6 +35,38 @@ describe('request', () => {
     await getConfig().promise;
     expect(f.mock.calls[0][1].method).toBe('GET');
     expect(f.mock.calls[0][1].body).toBeUndefined();
+  });
+
+  it('sends the domain with pick, context and reveal, and in the config query', async () => {
+    const f = vi.fn(async () => jsonResponse(200, {}));
+    vi.stubGlobal('fetch', f);
+    await postPick({ domain: 'shopping', person: '2', decision: 1, setting: 'Always ask', answer: 'yes' }).promise;
+    await postContext({ domain: 'shopping', person: '2', decision: 1 }).promise;
+    await postReveal({ domain: 'shopping', person: '2', decision: 1 }).promise;
+    await getConfig('shopping').promise;
+    expect(JSON.parse(f.mock.calls[0][1].body)).toMatchObject({ domain: 'shopping', answer: 'yes' });
+    expect(f.mock.calls[1][0]).toBe('http://localhost:8787/api/context');
+    expect(JSON.parse(f.mock.calls[1][1].body)).toEqual({ domain: 'shopping', person: '2', decision: 1 });
+    expect(JSON.parse(f.mock.calls[2][1].body).domain).toBe('shopping');
+    expect(f.mock.calls[3][0]).toBe('http://localhost:8787/api/config?domain=shopping');
+  });
+
+  it('reads the borough outline from a relative path', async () => {
+    const f = vi.fn(async () => jsonResponse(200, { type: 'FeatureCollection', features: [] }));
+    vi.stubGlobal('fetch', f);
+    await getOutline().promise;
+    expect(f.mock.calls[0][0]).toBe('./data/nyc_boroughs.json');
+  });
+
+  it('cancelling a context request reports cancelled', async () => {
+    const f = vi.fn((url, init) => new Promise((_, reject) => {
+      init.signal.addEventListener('abort', () => reject(new Error('aborted')));
+    }));
+    vi.stubGlobal('fetch', f);
+    const r = postContext({ domain: 'places', person: '1', decision: 0 });
+    const caught = r.promise.catch((e) => e);
+    r.cancel();
+    expect((await caught).code).toBe('cancelled');
   });
 
   it('times out after the limit with code timeout', async () => {
