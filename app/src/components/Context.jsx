@@ -57,7 +57,7 @@ function Recent({ history, domain, kind }) {
         {items.map((h, i) => (
           <li key={`${h.name}-${i}`} className={kind && sameKind(h.category, kind) ? 'is-on' : undefined}>
             <span>{h.name}</span>
-            {h.category && <span className="meta"> · {h.category}</span>}
+            {h.category && !sameKind(h.category, h.name) && <span className="meta"> · {h.category}</span>}
           </li>
         ))}
       </ul>
