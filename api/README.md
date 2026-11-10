@@ -83,8 +83,8 @@ The app shows only these numbers.
   inject instructions into the prompt.
 - **Limits.** Bodies over 2 KB are refused, each client gets 30 requests a minute, and only the app's origin passes CORS.
 - **Logs hold ids and timings only,** never a person's places or the prompt (a test checks this).
-- **Public records are generalized.** Places that reveal health, religion, sexual orientation, adult venues or a home appear
-  as a generic label without a name and never get a map point. Other map points are rounded to about 500 m, and the map is
+- **Public records are generalized.** Places that reveal health, religion, sexual orientation, adult venues, a home or student
+  housing (and medical schools) appear as a generic label without a name and never get a map point. Other map points are rounded to about 500 m, and the map is
   drawn in the browser from a local outline file, so no map service sees them.
 - **Not production grade.** There is no user login (the demo people are anonymized records), the rate limit is in memory, and the
   service is meant for a local demo. A real deployment would add authentication, TLS, a shared rate limiter and secret storage.

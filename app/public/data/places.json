@@ -389,8 +389,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -584,8 +584,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -779,8 +779,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -974,8 +974,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -1028,8 +1028,8 @@
        "history_count": 0
       },
       {
-       "name": "Residential Building",
-       "category": "Apartment / Condo",
+       "name": "",
+       "category": "Residence",
        "prob": 0.1596,
        "history_count": 0
       }
@@ -1169,8 +1169,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -1364,8 +1364,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -1559,8 +1559,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -1754,8 +1754,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -1949,8 +1949,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -2144,8 +2144,8 @@
        "category": "Event Space"
       },
       {
-       "name": "Weill Cornell Medicine",
-       "category": "Medical School"
+       "name": "",
+       "category": "College"
       },
       {
        "name": "Serafina Always",
@@ -2366,8 +2366,8 @@
        "history_count": 0
       },
       {
-       "name": "Residential Building",
-       "category": "Apartment / Condo",
+       "name": "",
+       "category": "Residence",
        "prob": 0.0409,
        "history_count": 0
       }
@@ -4541,8 +4541,8 @@
        "history_count": 0
       },
       {
-       "name": "NYU Palladium Residence Hall",
-       "category": "College Residence Hall",
+       "name": "",
+       "category": "Residence",
        "prob": 0.2229,
        "history_count": 0
       },
@@ -5918,8 +5918,8 @@
        "history_count": 0
       },
       {
-       "name": "Residential Building",
-       "category": "Apartment / Condo",
+       "name": "",
+       "category": "Residence",
        "prob": 0.0387,
        "history_count": 0
       },
@@ -9251,8 +9251,8 @@
        "history_count": 0
       },
       {
-       "name": "Whittier Hall",
-       "category": "College Residence Hall",
+       "name": "",
+       "category": "Residence",
        "prob": 0.0372,
        "history_count": 0
       }
@@ -10616,8 +10616,8 @@
        "history_count": 0
       },
       {
-       "name": "Public Storage",
-       "category": "Home (private)",
+       "name": "",
+       "category": "Residence",
        "prob": 0.1658,
        "history_count": 0
       }
@@ -15846,7 +15846,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16017,7 +16017,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16188,7 +16188,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16359,7 +16359,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16530,7 +16530,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16701,7 +16701,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -16872,7 +16872,7 @@
      ],
      "top_categories": [
       "Residence",
-      "Home (private)",
+      "Residence",
       "American Restaurant",
       "Other Great Outdoors",
       "Mexican Restaurant",
@@ -19639,8 +19639,8 @@
        "history_count": 0
       },
       {
-       "name": "Pantas Hall",
-       "category": "College Residence Hall",
+       "name": "",
+       "category": "Residence",
        "prob": 0.1343,
        "history_count": 0
       },
