@@ -9,3 +9,5 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 .DS_Store
+.env
+!api/model_card_places.json

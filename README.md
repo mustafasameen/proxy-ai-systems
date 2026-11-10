@@ -16,10 +16,55 @@ popularity, so popularity alone cannot give the answer away.
 | `hpc/build_matched_stranger.py` | writes the matched-stranger control: each user's history is replaced by that of the most similar other user (same history length band, closest category profile), with no random draw |
 | `hpc/requirements_hpc.txt` | pinned packages of the cluster environment that ran the GPU jobs |
 | `tests/` | tests that run on a small synthetic release |
-| `app/` | the delegate interface (React): it replays held-out decisions, asks one question when that helps, and reports how far its picks can be trusted |
+| `app/` | the delegate interface (React): a live client of the API that picks a place, asks one question when that helps, and says how far the pick can be trusted |
+| `api/` | the service behind the interface (FastAPI): it calls the hosted model for each new decision and applies the ask rule; see `api/README.md` |
+| `docs/` | screenshots of the interface and the script that captures them |
 | `experiments/m4/` | the comparison of candidate models, the calibration step, the ask-rule comparison and the export of the interface data |
 | `proposal/milestone3/` | the statistics and checks reported in the Milestone 3 data document |
 | `requirements.txt` | Python packages for the notebook |
+
+## Live demo
+
+![A pick with all options and what the answer changed](docs/screenshots/04_options_and_what_changed.png)
+
+The interface works on 105 held-out decisions of 12 people. For each decision the API sends the person's 30 most recent places
+and the five options to Llama 3.3 70B Instruct, hosted on HiPerGator and reached through UF NaviGator. The model returns the
+probability of each option. If one yes or no question about a kind of place would raise the chance of a right pick by enough,
+PROXY asks it first; the answer removes the options it rules out. The pick comes with a reason taken from the person's own
+history and a measured track record.
+
+The numbers in the interface come from the same model over all 2,502 held-out decisions of the 300 test people. Half of the
+people set the model's calibration and the ask thresholds; the other half (1,373 decisions from 150 people) give the reported
+numbers, with 95% intervals from a person-level bootstrap. Questions are answered truthfully from the real choice.
+
+| when PROXY asks | asks on | pick matches the real choice |
+|---|---|---|
+| Never ask | 0% | 36.7% [33.2, 40.3] |
+| Rarely | 31% | 43.9% [40.6, 47.5] |
+| When unsure | 50% | 47.9% [44.7, 51.4] |
+| Often | 71% | 52.7% [49.6, 56.2] |
+| Always ask | 100% | 56.9% [53.6, 60.3] |
+
+A random pick matches one time in five. The calibration error of the model's confidence is 0.021. A model call takes 0.28 s
+at the median and 0.45 s at the 90th percentile.
+
+To run it, start the API and then the interface:
+
+```
+cd api && cp .env.example .env    # add a NaviGator key
+python3 -m pip install -r requirements.txt
+python3 -m uvicorn app:app --port 8787
+cd ../app && npm install && npm run dev    # then open http://localhost:5174
+```
+
+| | |
+|---|---|
+| ![Start](docs/screenshots/01_start.png) | ![Question](docs/screenshots/02_question.png) |
+| ![Settings](docs/screenshots/06_settings.png) | ![About](docs/screenshots/07_about.png) |
+| ![Dark mode](docs/screenshots/08_pick_dark.png) | ![Phone](docs/screenshots/09_pick_phone.png) |
+
+The API tests (`cd api && python3 -m pytest -q test_api.py`) cover valid, edge and malformed input, every model failure, the
+rate and size limits, the logs and the key. The interface tests run with `cd app && npm test`.
 
 ## Data
 
@@ -41,7 +86,7 @@ checksum. To run the code in `src/` and `hpc/`, place the release under `data/ma
 
 Venue histories can identify a person. The code and documents show no user id, no exact time and no coordinates. The
 exceptions are the interface samples in `app/public/data/`: `places.json` holds 105 held-out decisions of 12 people,
-each with that person's recent places, under the dataset's Apache 2.0 license, and `shopping.json` holds 62 held-out
+each with that person's recent places, under the dataset's Apache 2.0 license, and `shopping.json` (used by the Milestone 4 interface, not the live one) holds 62 held-out
 purchase decisions of 12 people from Amazon Reviews 2023 (video games), with product titles only. In that file user ids are replaced by "Person 1" to
 "Person 12", homes carry no name, and places that reveal health, religion, sexual orientation or a residence are shown only
 by a generic label such as "Health care" or "Place of worship". See `app/public/data/NOTICE.md`.

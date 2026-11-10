@@ -1,87 +1,56 @@
 import { describe, it, expect } from 'vitest';
 import {
-  CHECK_IN_NOTES,
-  DOMAIN_COPY,
-  MESSAGES,
-  RECOMMENDED_IDX,
-  SETTING_LABELS,
-  answerLabel,
-  checkInNote,
-  domainCopy,
-  domainKeyOf,
-  historyLabelOf,
-  settingLabel,
+  allCopyStrings, askRateText, errorMessage, numberWord, confidenceParts, allRejected, endOfDecisions, COPY, pct,
 } from './copy.js';
 
-// No em or en dashes, no exclamation marks, no semicolons.
-const FORBIDDEN = new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}!;]`);
-
-const strings = (value) => {
-  if (typeof value === 'string') return [value];
-  if (Array.isArray(value)) return value.flatMap(strings);
-  if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
-  return [];
-};
-
-describe('copy table', () => {
-  it('uses plain words only', () => {
-    const all = strings([SETTING_LABELS, CHECK_IN_NOTES, DOMAIN_COPY, MESSAGES]);
-    expect(all.length).toBeGreaterThan(20);
-    expect(all.filter((s) => FORBIDDEN.test(s))).toEqual([]);
+describe('copy rules', () => {
+  it('uses no em or en dashes, exclamation marks or semicolons', () => {
+    const strings = allCopyStrings();
+    expect(strings.length).toBeGreaterThan(40);
+    for (const s of strings) {
+      expect(s, s).not.toMatch(/[—–!;]/);
+    }
   });
 
-  it('labels the five check-in options in order, with the third recommended', () => {
-    expect(SETTING_LABELS).toEqual([
-      'Never, just pick',
-      'Rarely',
-      'When unsure (recommended)',
-      'Often',
-      'Always ask first',
-    ]);
-    expect(RECOMMENDED_IDX).toBe(2);
-    expect(CHECK_IN_NOTES).toHaveLength(5);
-  });
-
-  it('has the start-line wording for the recommended option', () => {
-    expect(checkInNote(2)).toBe("I'll check with you when I'm unsure.");
-  });
-
-  it('falls back to the data label past the fifth option', () => {
-    const settings = [1, 2, 3, 4, 5, 6].map((n) => ({ label: `Setting ${n}` }));
-    expect(settingLabel(settings, 1)).toBe('Rarely');
-    expect(settingLabel(settings, 5)).toBe('Setting 6');
-    expect(settingLabel(settings, 9)).toBe('');
+  it('matches the spec copy for key lines', () => {
+    expect(COPY.startTitle).toBe('Find somewhere new.');
+    expect(COPY.notForYou).toBe("Not for you. Here's the next option.");
+    expect(allRejected(5)).toBe("That's all five options.");
+    expect(endOfDecisions('1')).toBe("That's all the decisions for Person 1.");
   });
 });
 
-describe('domain wording', () => {
-  it('has the places and shopping start prompts and buttons', () => {
-    expect(DOMAIN_COPY.places.prompt).toBe('Want me to find somewhere new?');
-    expect(DOMAIN_COPY.places.start).toBe('Find me somewhere new');
-    expect(DOMAIN_COPY.places.next).toBe('Next');
-    expect(DOMAIN_COPY.places.confirmed).toBe('Great. Saved to your plans.');
-    expect(DOMAIN_COPY.shopping.prompt).toBe('Want me to suggest your next buy?');
-    expect(DOMAIN_COPY.shopping.start).toBe('Suggest something new');
-    expect(DOMAIN_COPY.shopping.next).toBe('Try another');
-    expect(DOMAIN_COPY.shopping.confirmed).toBe('Added to your list.');
+describe('errorMessage', () => {
+  it('maps each code to its copy', () => {
+    expect(errorMessage('network')).toBe("Couldn't reach the model.");
+    expect(errorMessage('model_unavailable')).toBe("Couldn't reach the model.");
+    expect(errorMessage('busy')).toBe('The model is busy. Try again in a moment.');
+    expect(errorMessage('timeout')).toBe("PROXY couldn't finish this request.");
+    expect(errorMessage('no_options')).toBe('No recommendation was returned.');
+    expect(errorMessage('rate_limited')).toBe('Too many requests. Wait a minute and try again.');
   });
-
-  it('takes the domain from about.domain, else from the file it came from', () => {
-    expect(domainKeyOf({ domain: 'shopping' }, 'places')).toBe('shopping');
-    expect(domainKeyOf({ domain: 'other' }, 'places')).toBe('places');
-    expect(domainKeyOf({}, 'shopping')).toBe('shopping');
-    expect(domainCopy('nonsense').key).toBe('places');
+  it('falls back to the server message, then a generic line', () => {
+    expect(errorMessage('weird', 'Server says hi.')).toBe('Server says hi.');
+    expect(errorMessage('weird')).toBe("PROXY couldn't finish this request.");
   });
+});
 
-  it('takes the history label from about.history_label, else the domain default', () => {
-    expect(historyLabelOf({ history_label: 'recent games' }, 'shopping')).toBe('recent games');
-    expect(historyLabelOf({}, 'places')).toBe('recent places');
-    expect(historyLabelOf({ history_label: '  ' }, 'shopping')).toBe('recent purchases');
+describe('number helpers', () => {
+  it('askRateText reads the API ask rate', () => {
+    expect(askRateText(0.3)).toBe('Asks about 3 in 10 times');
+    expect(askRateText(0)).toBe('Picks without asking');
+    expect(askRateText(1)).toBe('Asks before every pick');
   });
-
-  it('labels the bubble for each reply', () => {
-    expect(answerLabel('yes')).toBe('Yes');
-    expect(answerLabel('no')).toBe('No');
-    expect(answerLabel('skip')).toBe('Just pick');
+  it('numberWord and pct', () => {
+    expect(numberWord(5)).toBe('five');
+    expect(numberWord(12)).toBe('12');
+    expect(pct(0.584)).toBe('58%');
+  });
+  it('confidenceParts is null without confidence', () => {
+    expect(confidenceParts(null)).toBeNull();
+    const c = confidenceParts({ label: 'Moderate confidence', matched_out_of_10: 6, similar_picks: 40 });
+    expect(c.label).toBe('Moderate confidence');
+    expect(c.rest).toBe(' · Similar picks matched the real choice about 6 in 10 times.');
+    expect(c.rest).not.toMatch(/40/);
   });
 });
