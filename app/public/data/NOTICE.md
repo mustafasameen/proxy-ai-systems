@@ -8,9 +8,10 @@ names come from Foursquare Open Source Places (Apache License 2.0). User ids are
 to a grid of about 500 m (0.0045 degrees of latitude by 0.006 degrees of longitude), never an exact venue position; places
 shown by a generic label have no location. `nyc_boroughs.json` holds simplified borough outlines from the NYC Department of
 City Planning, used to draw the map without any external map service. Places that
-reveal health, religion, sexual orientation, adult venues or a residence are shown only by a generic label
-(for example "Health care" or "Place of worship"), with no venue name. The model's probabilities are
-unchanged; only what is displayed is generalized.
+reveal health, religion, sexual orientation, adult venues, a home or student housing are shown only by a generic
+label (for example "Health care", "Place of worship" or "Residence"), with no venue name; a medical school is shown
+as "College". In the live app the model reads the same generic label, so for decisions with such a place its scores
+can differ slightly from the evaluated ones.
 
 `shopping.json` holds 62 held-out purchase decisions from 12 people in the Video Games category of
 Amazon Reviews 2023 (McAuley Lab, released for research), with the saved scores of the fine-tuned model on each decision

@@ -45,7 +45,7 @@ def test_prompt_matches_the_evaluated_rows():
     for line in open(rows):
         r = json.loads(line)
         by_opts.setdefault(r["prompt"].split("Which of these will they choose?")[1], []).append(r["prompt"])
-    generic = {"Health care", "Place of worship", "Bar", "Nightlife spot", "Residence"}
+    generic = {"Health care", "Place of worship", "Bar", "Nightlife spot", "Residence", "College"}
     exact = redacted = 0
     for ds in api.PEOPLE.values():
         for d in ds:
@@ -167,7 +167,7 @@ def test_logs_hold_no_history(monkeypatch, caplog):
     with caplog.at_level("INFO", logger="proxy"):
         client.post("/api/pick", json={"person": "1", "decision": 0})
     text = " ".join(r.getMessage() for r in caplog.records)
-    assert "rid" in text and all(h["name"] not in text for h in D0["history"])
+    assert "rid" in text and all(h["name"] not in text for h in D0["history"] if h["name"])
 
 
 def test_secret_not_exposed():
