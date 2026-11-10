@@ -1,132 +1,79 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { tradeoffText } from '../lib/decide.js';
-import { settingLabel } from '../lib/copy.js';
-import { capitalizeFirst, hasCategory, isUnnamed, placeName } from '../lib/format.js';
+import { useEffect, useRef } from 'react';
+import { COPY, askRateText, pct, settingsNote } from '../lib/copy.js';
 
-const SHOWN = 10;
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-// The settings sheet: how often PROXY checks with you, what it knows about you, a link to the
-// About page, and the developer view switch. A native dialog, so focus stays inside while it is
-// open, Escape closes it and focus returns to the button that opened it.
-export default function SettingsSheet({
-  open,
-  onClose,
-  settings,
-  settingIdx,
-  onSetting,
-  history,
-  historyLabel,
-  onAbout,
-  dev,
-  onDev,
-}) {
+export default function SettingsSheet({ config, setting, devView, onSetting, onDev, onAbout, onClose }) {
   const ref = useRef(null);
-  const [showAll, setShowAll] = useState(false);
-  const titleId = useId();
-  const knowId = useId();
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open && !el.open) {
-      if (typeof el.showModal === 'function') el.showModal();
-      else el.setAttribute('open', '');
-      // Start on the chosen option so the keyboard lands somewhere useful.
-      const checked = el.querySelector('input[type="radio"]:checked');
-      if (checked) checked.focus();
-    } else if (!open && el.open) {
-      if (typeof el.close === 'function') el.close();
-      else el.removeAttribute('open');
+    const previous = document.activeElement;
+    const node = ref.current;
+    const first = node && node.querySelector(FOCUSABLE);
+    if (first) first.focus();
+    return () => {
+      if (previous && previous.focus) previous.focus();
+    };
+  }, []);
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
     }
-  }, [open]);
+    if (e.key !== 'Tab') return;
+    const items = [...ref.current.querySelectorAll(FOCUSABLE)].filter((n) => !n.disabled);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
-  const recent = [...(history || [])].reverse();
-  const rows = showAll ? recent : recent.slice(0, SHOWN);
-
+  const ev = config && config.evaluation;
   return (
-    <dialog
-      ref={ref}
-      className="sheet"
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(e) => {
-        // A click on the dimmed area outside the sheet closes it.
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="sheet-head">
-        <h2 className="sheet-title" id={titleId}>
-          When should PROXY check with you?
-        </h2>
-        <button type="button" className="btn" onClick={onClose}>
-          Done
-        </button>
-      </div>
-
-      <div className="sheet-body">
-        <fieldset className="choices">
-          <legend className="visually-hidden">How often PROXY checks with you</legend>
-          {settings.map((s, i) => (
-            <label key={i} className="choice">
-              <input
-                type="radio"
-                name="check-in"
-                checked={i === settingIdx}
-                onChange={() => onSetting(i)}
-              />
-              <span className="choice-body">
-                <span className="choice-label">{settingLabel(settings, i)}</span>
-                <span className="choice-note">{tradeoffText(s)}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
-
-        <section className="sheet-sec" aria-labelledby={knowId}>
-          <h3 className="sec-title" id={knowId}>
-            What PROXY knows about you
-          </h3>
-          <h4 className="sub">{capitalizeFirst(historyLabel)}</h4>
-          {recent.length === 0 ? (
-            <p className="muted small">Nothing here yet.</p>
-          ) : (
-            <ol className="history">
-              {rows.map((p, i) => (
-                <li key={i}>
-                  <span className="h-name">{placeName(p) || 'Unnamed item'}</span>
-                  {!isUnnamed(p) && hasCategory(p) && <span className="h-cat">{p.category}</span>}
-                </li>
-              ))}
-            </ol>
-          )}
-          {recent.length > SHOWN && (
-            <button
-              type="button"
-              className="link"
-              aria-expanded={showAll}
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll ? 'Show fewer' : `Show all ${recent.length}`}
-            </button>
-          )}
-          <p className="know-note">
-            PROXY uses only this list. It never sees your location, contacts or messages.
-          </p>
-        </section>
-
-        <div className="sheet-sec">
-          <button type="button" className="link" onClick={onAbout}>
-            How well does PROXY work?
-          </button>
+    <div className="sheet-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" ref={ref} onKeyDown={onKeyDown}>
+        <div className="sheet-head">
+          <h2 id="settings-title" className="h-section">{COPY.settingsTitle}</h2>
+          <button type="button" className="text-btn" onClick={onClose}>{COPY.close}</button>
         </div>
-
-        <div className="sheet-sec dev-sec">
-          <label className="dev-toggle">
-            <input type="checkbox" checked={dev} onChange={(e) => onDev(e.target.checked)} />
-            <span>Developer view (for evaluation)</span>
+        {config ? (
+          <>
+            <fieldset className="radio-list">
+              <legend className="visually-hidden">{COPY.settingsTitle}</legend>
+              {config.settings.map((s) => (
+                <label key={s.label} className="radio-row">
+                  <input type="radio" name="setting" value={s.label} checked={setting === s.label} onChange={() => onSetting(s.label)} />
+                  <span className="radio-text">
+                    <span className="radio-label">{s.label}</span>
+                    <span className="meta">{askRateText(s.ask_rate)}</span>
+                  </span>
+                  <span className="radio-rate num">{pct(s.accuracy)}</span>
+                </label>
+              ))}
+            </fieldset>
+            {ev && <p className="note">{settingsNote(ev.report_rows, ev.report_users)}</p>}
+          </>
+        ) : (
+          <p className="note">{COPY.configFail}</p>
+        )}
+        <div className="sheet-section">
+          <button type="button" className="text-link" onClick={onAbout}>{COPY.aboutLink}</button>
+        </div>
+        <div className="sheet-section sheet-foot">
+          <label className="toggle-row">
+            <input type="checkbox" checked={devView} onChange={(e) => onDev(e.target.checked)} />
+            <span>{COPY.developerToggle}</span>
           </label>
         </div>
       </div>
-    </dialog>
+    </div>
   );
 }
