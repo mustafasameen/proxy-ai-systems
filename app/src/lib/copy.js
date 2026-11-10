@@ -57,30 +57,37 @@ export const COPY = {
   wordmark: 'PROXY',
   settingsLabel: 'Settings',
   personSwitcherLabel: 'Demo person',
-  startKicker: 'PLACES · NEW YORK CITY',
-  startTitle: 'Find somewhere new.',
-  startSub: 'One place picked from five options, based on your past choices.',
-  startButton: 'Find me a place',
-  startHintBefore: "I'll ask one question if it could help.",
+  startHintBefore: 'PROXY asks one question first if it could help.',
   startHintChange: 'Change',
-  knowsHeading: 'What PROXY knows about you',
+  startButton: 'Let PROXY choose',
+  loadingOptions: 'Loading the options…',
+  questionKicker: 'YOUR ANSWER COULD CHANGE THE PICK',
+  optionsLabel: 'The five options',
+  keptIfYes: 'Kept if you say yes',
+  excluded: 'Excluded by your answer',
+  passed: 'Passed',
+  isPick: "PROXY's pick",
+  switchLabel: 'Domain',
+  contextKicker: 'WHAT PROXY KNOWS',
+  mostFrequent: 'Most frequent',
+  showFewer: 'Show fewer',
+  legendVisit: 'Past visit',
+  legendOption: 'Option',
+  legendPick: "PROXY's pick",
+  mapCaption: "Location context only. PROXY's model sees names and kinds of places, not locations. Points are rounded to about 500 m, and private places are not shown.",
+  mapUnavailable: 'The borough outline could not be loaded.',
   looking: 'Looking through your options…',
   slow: 'This is taking longer than expected.',
   using: 'Using your answer to make a pick…',
   cancel: 'Cancel',
   tryAgain: 'Try again',
-  questionKicker: 'ONE QUICK QUESTION',
   yes: 'Yes',
   no: 'No',
   skip: 'Skip',
   changeAnswer: 'Change answer',
   pickKicker: 'YOUR PICK',
   whyHeading: 'Why this pick',
-  choose: 'Choose this place',
   notForMe: 'Not for me',
-  seeAll: 'See all options',
-  hideAll: 'Hide options',
-  ruledOut: 'Ruled out by your answer',
   nextDecision: 'Next decision',
   notForYou: "Not for you. Here's the next option.",
   answerChangedTitle: 'What did your answer change?',
@@ -98,17 +105,9 @@ export const COPY = {
   realChoice: 'real choice',
   configFail: "Couldn't reach the model.",
   uses: 'What PROXY uses',
-  usesBody:
-    "Only this person's past places, five options per decision, and at most one yes or no question.",
   evaluated: 'How it was evaluated',
   modelHeading: 'The model',
-  modelBody: 'Llama 3.3 70B through UF NaviGator, called live for each decision.',
   limitsHeading: 'Limitations',
-  limits: [
-    "Matching a past choice is not proof the person enjoyed it.",
-    'PROXY was tested on past New York check-ins.',
-    'The demo people are anonymized records.',
-  ],
   devHeading: 'Developer view',
   trustHeading: 'Trust report',
   chartBarsCaption: 'Match rate with 95% interval',
@@ -121,12 +120,77 @@ export const COPY = {
   chartAsksMore: 'Asks more',
 };
 
+export const DOMAINS = ['places', 'shopping'];
+
+export const DOMAIN_COPY = {
+  places: {
+    tab: 'Places',
+    kicker: 'PLACES · NEW YORK CITY',
+    sub: 'PROXY is choosing from five places this person has never been to.',
+    source: 'Live: Llama 3.3 70B through UF NaviGator',
+    choose: 'Choose this place',
+    recent: 'Recent',
+    unit: 'visit',
+    contextCaption: '',
+    usesBody: "Only this person's past places, five options per decision, and at most one yes or no question.",
+    modelBody: 'Llama 3.3 70B through UF NaviGator, called live for each decision.',
+    limits: [
+      'Matching a past choice is not proof the person enjoyed it.',
+      'PROXY was tested on past New York check-ins.',
+      'The demo people are anonymized records.',
+    ],
+    settingsNoun: 'place the person really chose',
+  },
+  shopping: {
+    tab: 'Shopping',
+    kicker: 'SHOPPING · VIDEO GAMES',
+    sub: 'PROXY is choosing from five products this person has never bought.',
+    source: 'Replay: saved scores of the fine-tuned model. No model call.',
+    choose: 'Choose this item',
+    recent: 'Recent purchases',
+    unit: 'purchase',
+    contextCaption: "Brands come from the product records. PROXY's model sees product titles only.",
+    usesBody: "Only this person's past purchases, five products per decision, and at most one yes or no question.",
+    modelBody: 'The picks replay saved scores of Llama-3.1-8B-Instruct fine-tuned on earlier purchases from Amazon Reviews 2023 Video Games, using the same split method. No model is called for each decision.',
+    limits: [
+      'Matching a past purchase is not proof the person wanted it.',
+      'Tested on past Amazon purchases in one category, video games.',
+      'It sees product titles, not prices or reviews.',
+      'The demo people are anonymized records.',
+    ],
+    settingsNoun: 'item the person really bought',
+  },
+};
+
+export const dc = (domain) => DOMAIN_COPY[domain] || DOMAIN_COPY.places;
+
+export function workspaceTitle(domain, person) {
+  return domain === 'shopping' ? `What will Person ${person} buy next?` : `Where should Person ${person} go next?`;
+}
+
+export function contextSummaryTitle(person) {
+  return `What PROXY knows about Person ${person}`;
+}
+
+export function showAll(n) {
+  return `Show all ${fmtCount(n)}`;
+}
+
+export function mapLabel(visits, options) {
+  return `Map of ${visits} past visits and ${options} options`;
+}
+
 export function accepted(name) {
   return `You chose ${name}.`;
 }
 
 export function decisionOf(index, total) {
   return `Decision ${index + 1} of ${total}`;
+}
+
+// Past visits that fall outside the map's view, which centres on the options.
+export function offVisits(n) {
+  return n === 1 ? 'One more past visit is outside this view.' : `${n} more past visits are outside this view.`;
 }
 
 export function youSaid(answer) {
@@ -146,8 +210,8 @@ export function andMore(n) {
   return `and ${fmtCount(n)} more`;
 }
 
-export function settingsNote(rows, users) {
-  return `Share of test decisions where PROXY's pick matched the place the person really chose, measured on ${fmtCount(rows)} decisions from ${fmtCount(users)} people it never saw while being tuned. Asking more often generally helps.`;
+export function settingsNote(rows, users, domain = 'places') {
+  return `Share of test decisions where PROXY's pick matched the ${dc(domain).settingsNoun}, measured on ${fmtCount(rows)} decisions from ${fmtCount(users)} people it never saw while being tuned. Asking more often generally helps.`;
 }
 
 export function personLabel(id) {
@@ -188,7 +252,10 @@ export function allCopyStrings() {
   out.push(c.label + c.rest);
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
   out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), endOfDecisions('1'), andMore(12));
-  out.push(settingsNote(100, 20));
+  out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
+  out.push(offVisits(1), offVisits(7));
+  out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
+  out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {
     act_now_accuracy: 0.5, act_now_ci: [0.4, 0.6], always_ask_accuracy: 0.6, always_ask_ci: [0.5, 0.7],
     report_rows: 100, report_users: 20, options_per_decision: 5,

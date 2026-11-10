@@ -1,40 +1,84 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { getConfig, postPick, postReveal } from './lib/api.js';
+import { getConfig, getOutline, postContext, postPick, postReveal } from './lib/api.js';
 import { reducer, initialState } from './lib/state.js';
+import { optionRows } from './lib/workspace.js';
 import Header from './components/Header.jsx';
 import Flow from './components/Flow.jsx';
+import Context from './components/Context.jsx';
 import SettingsSheet from './components/SettingsSheet.jsx';
 import About from './components/About.jsx';
-import { COPY } from './lib/copy.js';
+import { COPY, contextSummaryTitle } from './lib/copy.js';
 
 const SLOW_MS = 4000;
+const WIDE = '(min-width: 960px)';
+
+function useWide() {
+  const get = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(WIDE).matches;
+  const [wide, setWide] = useState(get);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(WIDE);
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [config, setConfig] = useState(null);
   const [configFailed, setConfigFailed] = useState(false);
+  const [outline, setOutline] = useState(null);
+  const [outlineFailed, setOutlineFailed] = useState(false);
+  const wide = useWide();
   const inflight = useRef(null);
   const slowTimer = useRef(null);
   const settingsButton = useRef(null);
   const configHandle = useRef(null);
+  const contextHandle = useRef(null);
+  const { domain, person, decision, epoch } = state;
 
   const loadConfig = useCallback(() => {
     if (configHandle.current) configHandle.current.cancel();
-    const h = getConfig();
+    const h = getConfig(domain);
     configHandle.current = h;
     setConfigFailed(false);
     h.promise.then(
       (data) => { if (configHandle.current === h) setConfig(data); },
       (err) => { if (configHandle.current === h && err.code !== 'cancelled') setConfigFailed(true); },
     );
-  }, []);
+  }, [domain]);
 
   useEffect(() => {
+    setConfig(null);
     loadConfig();
     return () => {
       if (configHandle.current) configHandle.current.cancel();
     };
   }, [loadConfig]);
+
+  // The borough outline is a static file, read once.
+  useEffect(() => {
+    const h = getOutline();
+    h.promise.then(setOutline, (err) => { if (err.code !== 'cancelled') setOutlineFailed(true); });
+    return () => h.cancel();
+  }, []);
+
+  // Options, history and summary come from /api/context whenever the decision changes. No model is called.
+  useEffect(() => {
+    if (contextHandle.current) contextHandle.current.cancel();
+    const h = postContext({ domain, person, decision });
+    contextHandle.current = h;
+    dispatch({ type: 'CONTEXT_REQUEST', token: h.token });
+    h.promise.then(
+      (data) => dispatch({ type: 'CONTEXT_RESPONSE', token: h.token, data }),
+      (error) => dispatch({ type: 'CONTEXT_FAILURE', token: h.token, error: { code: error.code || 'network', message: error.message } }),
+    );
+    return () => h.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [epoch]);
 
   const stop = useCallback(() => {
     clearTimeout(slowTimer.current);
@@ -45,9 +89,9 @@ export default function App() {
   useEffect(() => stop, [stop]);
 
   // Starts one pick request. The reducer ignores any response whose token is no longer current.
-  const run = useCallback((decision, answer, person = state.person, setting = state.setting) => {
+  const run = useCallback((answer) => {
     stop();
-    const h = postPick({ person, decision, setting, answer });
+    const h = postPick({ domain, person, decision, setting: state.setting, answer });
     inflight.current = h;
     dispatch({ type: 'REQUEST', token: h.token, decision, answer });
     slowTimer.current = setTimeout(() => dispatch({ type: 'SLOW', token: h.token }), SLOW_MS);
@@ -61,16 +105,21 @@ export default function App() {
         dispatch({ type: 'FAILURE', token: h.token, error: { code: error.code || 'network', message: error.message } });
       },
     );
-  }, [state.person, state.setting, stop]);
+  }, [domain, person, decision, state.setting, stop]);
 
   const onCancel = () => {
     stop();
     dispatch({ type: 'CANCEL' });
   };
 
-  const onPerson = (person) => {
+  const onDomain = (next) => {
     stop();
-    dispatch({ type: 'SET_PERSON', person });
+    dispatch({ type: 'SET_DOMAIN', domain: next });
+  };
+
+  const onPerson = (next) => {
+    stop();
+    dispatch({ type: 'SET_PERSON', person: next });
   };
 
   const onSetting = (setting) => {
@@ -79,8 +128,7 @@ export default function App() {
   };
 
   const onReveal = () => {
-    const { person, decision } = state;
-    const h = postReveal({ person, decision });
+    const h = postReveal({ domain, person, decision });
     h.promise.then(
       (data) => dispatch({ type: 'REVEAL', person, decision, data }),
       () => {},
@@ -88,62 +136,83 @@ export default function App() {
   };
 
   const retry = () => {
-    const r = state.retry || { decision: state.decision, answer: null };
-    run(r.decision, r.answer);
+    const r = state.retry;
+    run(r ? r.answer : null);
   };
 
-  const closeSettings = () => dispatch({ type: 'CLOSE_SETTINGS' });
+  const rows = optionRows(state);
+  const context = (
+    <Context
+      domain={domain}
+      context={state.context}
+      rows={rows}
+      outline={outline}
+      outlineFailed={outlineFailed && !outline}
+      bounds={config && config.map ? config.map.bounds : null}
+    />
+  );
 
   return (
     <>
       <Header
+        domain={domain}
+        onDomain={onDomain}
         people={config ? config.people : []}
-        person={state.person}
+        person={person}
         onPerson={onPerson}
         onSettings={() => dispatch({ type: 'OPEN_SETTINGS' })}
         settingsButtonRef={settingsButton}
         onHome={() => { stop(); dispatch({ type: 'SET_VIEW', view: 'main' }); }}
       />
-      <main className="column">
-        {state.view === 'about' ? (
-          <About config={config} onBack={() => dispatch({ type: 'SET_VIEW', view: 'main' })} />
-        ) : (
-          <>
-            <Flow
-              state={state}
-              config={config}
-              ready={Boolean(config)}
-              onFind={() => run(state.decision, null)}
-              onAnswer={(a) => run(state.decision, a)}
-              onChoose={() => dispatch({ type: 'ACCEPT' })}
-              onReject={() => dispatch({ type: 'NOT_FOR_ME' })}
-              onSelect={(position) => dispatch({ type: 'SELECT_OPTION', position })}
-              onNext={() => run(state.decision + 1, null)}
-              onChangeAnswer={() => { stop(); dispatch({ type: 'CHANGE_ANSWER' }); }}
-              onRestart={() => { stop(); dispatch({ type: 'RESTART' }); }}
-              onSettings={() => dispatch({ type: 'OPEN_SETTINGS' })}
-              onReveal={onReveal}
-              onCancel={onCancel}
-              onRetry={retry}
-            />
-            {configFailed && !config && (
-              <div className="error" role="alert">
-                <p>{COPY.configFail}</p>
-                <button type="button" className="secondary-btn" onClick={loadConfig}>{COPY.tryAgain}</button>
-              </div>
-            )}
-          </>
-        )}
-      </main>
+      {state.view === 'about' ? (
+        <main className="column">
+          <About domain={domain} config={config} onBack={() => dispatch({ type: 'SET_VIEW', view: 'main' })} />
+        </main>
+      ) : (
+        <main className="workspace">
+          <Flow
+            state={state}
+            config={config}
+            onFind={() => run(null)}
+            onAnswer={(a) => run(a)}
+            onChoose={() => dispatch({ type: 'ACCEPT' })}
+            onReject={() => dispatch({ type: 'NOT_FOR_ME' })}
+            onSelect={(position) => dispatch({ type: 'SELECT_OPTION', position })}
+            onNext={() => { stop(); dispatch({ type: 'NEXT_DECISION' }); }}
+            onChangeAnswer={() => { stop(); dispatch({ type: 'CHANGE_ANSWER' }); }}
+            onRestart={() => { stop(); dispatch({ type: 'RESTART' }); }}
+            onSettings={() => dispatch({ type: 'OPEN_SETTINGS' })}
+            onReveal={onReveal}
+            onCancel={onCancel}
+            onRetry={retry}
+            onRetryContext={() => dispatch({ type: 'CONTEXT_RETRY' })}
+          />
+          {(wide ? (
+            <aside className="context-col">{context}</aside>
+          ) : (
+            <details className="context-details">
+              <summary>{contextSummaryTitle(person)}</summary>
+              {context}
+            </details>
+          ))}
+          {configFailed && !config && (
+            <div className="error config-error" role="alert">
+              <p>{COPY.configFail}</p>
+              <button type="button" className="secondary-btn" onClick={loadConfig}>{COPY.tryAgain}</button>
+            </div>
+          )}
+        </main>
+      )}
       {state.settingsOpen && (
         <SettingsSheet
+          domain={domain}
           config={config}
           setting={state.setting}
           devView={state.devView}
           onSetting={onSetting}
           onDev={(on) => dispatch({ type: 'SET_DEV', on })}
           onAbout={() => dispatch({ type: 'SET_VIEW', view: 'about' })}
-          onClose={closeSettings}
+          onClose={() => dispatch({ type: 'CLOSE_SETTINGS' })}
         />
       )}
     </>

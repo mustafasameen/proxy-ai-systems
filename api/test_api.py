@@ -182,3 +182,52 @@ def test_live_gateway():
     r = client.post("/api/pick", json={"person": "2", "decision": 0, "setting": "Never ask"})
     assert r.status_code == 200, r.text
     assert len(r.json()["ranking"]) >= 1 and time.time() - t0 < 15
+
+
+# ---- shopping (replay of saved scores) and the context fields --------------------------------------------------------
+
+def test_shopping_prompt_matches_the_evaluated_rows():
+    """Known answer: every shopping demo prompt rebuilds byte-identical to its evaluated row (md5 stored at export)."""
+    import hashlib
+    for ds in api.DOMAINS["shopping"]["people"].values():
+        for d in ds:
+            assert hashlib.md5(core.build_prompt_shopping(d).encode()).hexdigest() == d["prompt_md5"], d["id"]
+
+
+def test_shopping_makes_no_model_call(monkeypatch):
+    def boom(prompt, **kw):
+        raise AssertionError("shopping must not call the gateway")
+    monkeypatch.setattr(core, "score_options", boom)
+    r = client.post("/api/pick", json={"domain": "shopping", "person": "1", "decision": 0, "setting": "Always ask"})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["live"] is False and j["stage"] == "question" and j["question"]["yes_idx"]
+    r2 = client.post("/api/pick", json={"domain": "shopping", "person": "1", "decision": 0, "setting": "Always ask",
+                                        "answer": "no"}).json()
+    assert r2["stage"] == "pick" and all(o["index"] not in j["question"]["yes_idx"] for o in r2["ranking"])
+
+
+def test_context_fields(monkeypatch):
+    monkeypatch.setattr(core, "score_options", stub([-1, -0.1, -3, -4, -5]))
+    j = client.post("/api/pick", json={"person": "1", "decision": 0, "setting": "Never ask"}).json()
+    assert len(j["options"]) == 5 and len(j["history"]) == j["history_total"]
+    assert j["history_summary"] and j["history_summary"][0]["count"] >= j["history_summary"][-1]["count"]
+    # hidden places never get a point
+    for h in j["history"]:
+        if h["category"] in {"Health care", "Place of worship", "Bar", "Nightlife spot", "Residence"} and h["name"] == h["category"]:
+            assert h["point"] is None
+
+
+def test_config_per_domain():
+    p, s = client.get("/api/config").json(), client.get("/api/config?domain=shopping").json()
+    assert p["live"] is True and p["map"] and s["live"] is False and s["map"] is None
+    assert [x["label"] for x in p["settings"]] == [x["label"] for x in s["settings"]]
+    assert client.get("/api/config?domain=music").status_code == 422
+
+
+def test_context_endpoint_makes_no_model_call(monkeypatch):
+    def boom(prompt, **kw):
+        raise AssertionError("context must not call the gateway")
+    monkeypatch.setattr(core, "score_options", boom)
+    j = client.post("/api/context", json={"person": "1", "decision": 0}).json()
+    assert len(j["options"]) == 5 and j["n_decisions"] >= 1 and any(o["point"] for o in j["options"])

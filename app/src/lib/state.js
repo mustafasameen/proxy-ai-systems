@@ -16,26 +16,40 @@ const FLOW_RESET = {
   choice: null,
   error: null,
   notice: null,
-  knows: null,
   reveal: null,
   retry: null,
 };
 
+const CONTEXT_RESET = { context: null, contextStatus: 'loading', contextError: null, contextToken: null };
+
 export function initialState() {
   return {
+    domain: 'places',
+    epoch: 0, // bumped whenever the context must be loaded again
     person: '1',
     setting: DEFAULT_SETTING,
     decision: 0,
     view: 'main', // main | about
     settingsOpen: false,
     devView: false,
+    ...CONTEXT_RESET,
     ...FLOW_RESET,
   };
 }
 
-function knowsFrom(data, previous) {
-  if (!data || !Array.isArray(data.history)) return previous;
-  return { items: data.history, total: data.history_total };
+// The context (options, history, summary) is shared by /api/context and /api/pick. A pick response refreshes it.
+const CONTEXT_FIELDS = ['options', 'history', 'history_total', 'history_summary', 'n_decisions', 'live'];
+
+function contextFrom(data, previous) {
+  if (!data || !Array.isArray(data.options)) return previous;
+  const next = { ...(previous || {}) };
+  CONTEXT_FIELDS.forEach((k) => { if (data[k] !== undefined) next[k] = data[k]; });
+  return next;
+}
+
+// Moves to another decision: the flow resets and the context is dropped so it can be loaded again.
+function moveTo(state, changes) {
+  return { ...state, ...FLOW_RESET, ...CONTEXT_RESET, ...changes, epoch: state.epoch + 1 };
 }
 
 export function reducer(state, action) {
@@ -45,7 +59,7 @@ export function reducer(state, action) {
       const sameDecision = decision === state.decision;
       const base = sameDecision
         ? state
-        : { ...state, response: null, choice: null, question: null, answer: null, reveal: null, phase: 'start', knows: state.knows };
+        : { ...state, response: null, choice: null, question: null, answer: null, reveal: null, phase: 'start' };
       return {
         ...base,
         decision,
@@ -66,7 +80,9 @@ export function reducer(state, action) {
       const data = action.data;
       const common = {
         ...state, token: null, busy: null, slow: false, pendingAnswer: null, error: null, notice: null,
-        knows: knowsFrom(data, state.knows),
+        context: contextFrom(data, state.context),
+        contextStatus: Array.isArray(data.options) ? 'ready' : state.contextStatus,
+        contextError: Array.isArray(data.options) ? null : state.contextError,
       };
       if (data.stage === 'question') {
         return { ...common, phase: 'question', question: data.question, answer: null, response: null, choice: null };
@@ -113,14 +129,41 @@ export function reducer(state, action) {
     case 'REVEAL':
       if (action.person !== state.person || action.decision !== state.decision) return state;
       return { ...state, reveal: action.data };
+    case 'CONTEXT_RETRY':
+      return { ...state, epoch: state.epoch + 1, contextStatus: 'loading', contextError: null };
+    case 'CONTEXT_REQUEST':
+      return { ...state, contextToken: action.token, contextStatus: 'loading', contextError: null };
+    case 'CONTEXT_RESPONSE':
+      if (action.token !== state.contextToken) return state; // superseded or cancelled
+      return {
+        ...state, context: contextFrom(action.data, null), contextStatus: 'ready', contextError: null, contextToken: null,
+      };
+    case 'CONTEXT_FAILURE': {
+      if (action.token !== state.contextToken) return state;
+      if (action.error.code === 'cancelled') return state;
+      if (action.error.code === 'no_more_decisions') {
+        return { ...state, ...FLOW_RESET, phase: 'end', started: true, contextStatus: 'ready', contextToken: null };
+      }
+      return { ...state, contextStatus: 'error', contextToken: null, contextError: action.error };
+    }
+    case 'SET_DOMAIN':
+      if (action.domain === state.domain) return state;
+      return moveTo(state, { domain: action.domain, person: '1', decision: 0 });
     case 'SET_PERSON':
       if (action.person === state.person) return state;
-      return { ...state, ...FLOW_RESET, person: action.person, decision: 0 };
+      return moveTo(state, { person: action.person, decision: 0 });
     case 'SET_SETTING':
       if (action.setting === state.setting) return state;
       return { ...state, ...FLOW_RESET, setting: action.setting };
+    case 'NEXT_DECISION': {
+      const total = state.context && state.context.n_decisions;
+      if (total && state.decision + 1 >= total) {
+        return { ...state, ...FLOW_RESET, phase: 'end', started: true };
+      }
+      return moveTo(state, { decision: state.decision + 1 });
+    }
     case 'RESTART':
-      return { ...state, ...FLOW_RESET, decision: 0 };
+      return moveTo(state, { decision: 0 });
     case 'OPEN_SETTINGS':
       return { ...state, settingsOpen: true };
     case 'CLOSE_SETTINGS':

@@ -1,12 +1,19 @@
-import { COPY, personLabel } from '../lib/copy.js';
+import { COPY, DOMAINS, DOMAIN_COPY, personLabel } from '../lib/copy.js';
 
-export default function Header({ people, person, onPerson, onSettings, settingsButtonRef, onHome }) {
+export default function Header({ domain, onDomain, people, person, onPerson, onSettings, settingsButtonRef, onHome }) {
   const ids = people.length ? people.map((p) => p.id) : [person];
   return (
     <header className="header">
       <div className="header-inner">
         <button type="button" className="wordmark" onClick={onHome}>{COPY.wordmark}</button>
         <div className="header-right">
+          <div className="domain-switch" role="group" aria-label={COPY.switchLabel}>
+            {DOMAINS.map((d) => (
+              <button key={d} type="button" className={d === domain ? 'domain-btn active' : 'domain-btn'} aria-pressed={d === domain} onClick={() => onDomain(d)}>
+                {DOMAIN_COPY[d].tab}
+              </button>
+            ))}
+          </div>
           <label className="person-switch">
             <span className="visually-hidden">{COPY.personSwitcherLabel}</span>
             <select value={person} onChange={(e) => onPerson(e.target.value)}>

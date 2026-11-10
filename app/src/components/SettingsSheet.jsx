@@ -3,7 +3,7 @@ import { COPY, askRateText, pct, settingsNote } from '../lib/copy.js';
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export default function SettingsSheet({ config, setting, devView, onSetting, onDev, onAbout, onClose }) {
+export default function SettingsSheet({ domain, config, setting, devView, onSetting, onDev, onAbout, onClose }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function SettingsSheet({ config, setting, devView, onSetting, onD
                 </label>
               ))}
             </fieldset>
-            {ev && <p className="note">{settingsNote(ev.report_rows, ev.report_users)}</p>}
+            {ev && <p className="note">{settingsNote(ev.report_rows, ev.report_users, domain)}</p>}
           </>
         ) : (
           <p className="note">{COPY.configFail}</p>

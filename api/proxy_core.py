@@ -38,6 +38,17 @@ def build_prompt(decision):
     return "\n".join(lines)
 
 
+def build_prompt_shopping(decision):
+    """The shopping task's prompt, rebuilt from the decision record (same wording the evaluation used)."""
+    lines = ["A person's recent purchases (most recent last):"]
+    lines += [f"  - {h['name']}" for h in decision["history"]]
+    lines += ["", "Which of these will they buy next? (They have not bought any of them before.)"]
+    for L, c in zip(LETTERS, decision["candidates"]):
+        lines.append(f"  {L}. {c['name']}")
+    lines += ["", "Answer with one letter (A/B/C/D/E). Answer:"]
+    return "\n".join(lines)
+
+
 def letter_logprobs(top_logprobs):
     lp = {L: MISSING_LOGPROB for L in LETTERS}
     for x in top_logprobs or []:
@@ -98,6 +109,32 @@ def best_question(probs, candidates):
         if best is None or gain > best[0]:
             best = (gain, c, S)
     return best
+
+
+def best_menu_question(probs, menu):
+    """Shopping: the brand or category question from the decision's menu with the largest expected gain.
+    Returns (gain, menu item, yes_indexes) or None. Ties go to the first item in menu order."""
+    base = max(probs)
+    best = None
+    for item in menu or []:
+        S = list(item["yes_idx"])
+        R = [i for i in range(len(probs)) if i not in S]
+        if not S or not R:
+            continue
+        gain = max(probs[i] for i in S) + max(probs[i] for i in R) - base
+        if best is None or gain > best[0]:
+            best = (gain, item, S)
+    return best
+
+
+def history_summary(history, top=5):
+    """The most frequent kinds of places (or brands) in the shown history, with counts."""
+    counts = {}
+    for h in history:
+        c = h.get("category")
+        if c:
+            counts[c] = counts.get(c, 0) + 1
+    return [{"category": c, "count": n} for c, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:top]]
 
 
 def should_ask(gain, setting):

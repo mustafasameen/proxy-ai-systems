@@ -25,9 +25,9 @@ popularity, so popularity alone cannot give the answer away.
 
 ## Live demo
 
-![A pick with all options and what the answer changed](docs/screenshots/04_options_and_what_changed.png)
+![The decision workspace after an answer: the options, the pick, and what PROXY knows](docs/screenshots/04_what_changed.png)
 
-The interface works on 105 held-out decisions of 12 people. For each decision the API sends the person's 30 most recent places
+The interface has two parts. Places works on 105 held-out decisions of 12 people. For each decision the API sends the person's 30 most recent places
 and the five options to Llama 3.3 70B Instruct, hosted on HiPerGator and reached through UF NaviGator. The model returns the
 probability of each option. If one yes or no question about a kind of place would raise the chance of a right pick by enough,
 PROXY asks it first; the answer removes the options it rules out. The pick comes with a reason taken from the person's own
@@ -48,6 +48,18 @@ numbers, with 95% intervals from a person-level bootstrap. Questions are answere
 A random pick matches one time in five. The calibration error of the model's confidence is 0.021. A model call takes 0.28 s
 at the median and 0.45 s at the 90th percentile.
 
+Shopping works on 62 held-out purchase decisions of 12 people (Amazon Reviews 2023, video games). It replays the saved scores
+of the fine-tuned Llama-3.1-8B-Instruct, so it makes no model call, and asks about a brand or category. On the 3,995 decisions
+of the 1,805 report people among all 8,000:
+
+| when PROXY asks | asks on | pick matches the real purchase |
+|---|---|---|
+| Never ask | 0% | 62.8% [60.8, 64.8] |
+| Rarely | 29% | 71.9% [70.1, 73.8] |
+| When unsure | 47% | 75.6% [73.9, 77.3] |
+| Often | 67% | 79.0% [77.5, 80.5] |
+| Always ask | 100% | 80.8% [79.3, 82.3] |
+
 To run it, start the API and then the interface:
 
 ```
@@ -59,9 +71,9 @@ cd ../app && npm install && npm run dev    # then open http://localhost:5174
 
 | | |
 |---|---|
-| ![Start](docs/screenshots/01_start.png) | ![Question](docs/screenshots/02_question.png) |
-| ![Settings](docs/screenshots/06_settings.png) | ![About](docs/screenshots/07_about.png) |
-| ![Dark mode](docs/screenshots/08_pick_dark.png) | ![Phone](docs/screenshots/09_pick_phone.png) |
+| ![Before PROXY chooses](docs/screenshots/01_workspace.png) | ![Question](docs/screenshots/02_question.png) |
+| ![Shopping](docs/screenshots/08_shopping.png) | ![Settings](docs/screenshots/06_settings.png) |
+| ![Dark mode](docs/screenshots/09_pick_dark.png) | ![Phone](docs/screenshots/10_pick_phone.png) |
 
 The API tests (`cd api && python3 -m pytest -q test_api.py`) cover valid, edge and malformed input, every model failure, the
 rate and size limits, the logs and the key. The interface tests run with `cd app && npm test`.

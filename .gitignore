@@ -11,3 +11,5 @@ __pycache__/
 .DS_Store
 .env
 !api/model_card_places.json
+!api/model_card_shopping.json
+!app/public/data/*.json

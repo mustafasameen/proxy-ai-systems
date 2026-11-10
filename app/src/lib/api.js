@@ -61,7 +61,7 @@ export function request(path, { method = 'GET', body, timeoutMs = TIMEOUT_MS, fe
     try {
       let res;
       try {
-        res = await doFetch(`${base || baseUrl()}${path}`, {
+        res = await doFetch(`${base !== undefined ? base : baseUrl()}${path}`, {
           method,
           headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
           body: body === undefined ? undefined : JSON.stringify(body),
@@ -100,10 +100,18 @@ export function request(path, { method = 'GET', body, timeoutMs = TIMEOUT_MS, fe
   };
 }
 
-export const getConfig = (opts) => request('/api/config', opts);
+export const getConfig = (domain = 'places', opts) =>
+  request(`/api/config?domain=${encodeURIComponent(domain)}`, opts);
 
-export const postPick = ({ person, decision, setting, answer }, opts) =>
-  request('/api/pick', { ...opts, method: 'POST', body: { person, decision, setting, answer: answer || null } });
+export const postContext = ({ domain = 'places', person, decision }, opts) =>
+  request('/api/context', { ...opts, method: 'POST', body: { domain, person, decision } });
 
-export const postReveal = ({ person, decision }, opts) =>
-  request('/api/reveal', { ...opts, method: 'POST', body: { person, decision } });
+export const postPick = ({ domain = 'places', person, decision, setting, answer }, opts) =>
+  request('/api/pick', { ...opts, method: 'POST', body: { domain, person, decision, setting, answer: answer || null } });
+
+export const postReveal = ({ domain = 'places', person, decision }, opts) =>
+  request('/api/reveal', { ...opts, method: 'POST', body: { domain, person, decision } });
+
+// The borough outline is a static file served by the app itself, so it is read with a relative path.
+export const getOutline = (path = 'data/nyc_boroughs.json', opts) =>
+  request(path, { ...opts, base: opts && opts.base !== undefined ? opts.base : './' });

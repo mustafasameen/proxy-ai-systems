@@ -1,0 +1,226 @@
+{
+ "model": "Llama-3.1-8B-Instruct, fine-tuned on earlier purchases (saved scores, replayed)",
+ "gateway": "none: replay of saved scores",
+ "temperature": 11.65,
+ "split": {
+  "fit_users": 1810,
+  "report_users": 1805,
+  "fit_rows": 4005,
+  "report_rows": 3995
+ },
+ "act_now_accuracy": 0.6278,
+ "act_now_ci": [
+  0.6083,
+  0.6475
+ ],
+ "always_ask_accuracy": 0.8083,
+ "always_ask_ci": [
+  0.7933,
+  0.8228
+ ],
+ "ece_report": 0.023,
+ "reliability": [
+  {
+   "lo": 0.0,
+   "hi": 0.1,
+   "n": 0,
+   "accuracy": null,
+   "mean_conf": null
+  },
+  {
+   "lo": 0.1,
+   "hi": 0.2,
+   "n": 0,
+   "accuracy": null,
+   "mean_conf": null
+  },
+  {
+   "lo": 0.2,
+   "hi": 0.3,
+   "n": 172,
+   "accuracy": 0.2442,
+   "mean_conf": 0.2756
+  },
+  {
+   "lo": 0.3,
+   "hi": 0.4,
+   "n": 573,
+   "accuracy": 0.3368,
+   "mean_conf": 0.3513
+  },
+  {
+   "lo": 0.4,
+   "hi": 0.5,
+   "n": 667,
+   "accuracy": 0.4618,
+   "mean_conf": 0.4521
+  },
+  {
+   "lo": 0.5,
+   "hi": 0.6,
+   "n": 565,
+   "accuracy": 0.5965,
+   "mean_conf": 0.5489
+  },
+  {
+   "lo": 0.6,
+   "hi": 0.7,
+   "n": 513,
+   "accuracy": 0.6433,
+   "mean_conf": 0.6491
+  },
+  {
+   "lo": 0.7,
+   "hi": 0.8,
+   "n": 489,
+   "accuracy": 0.7791,
+   "mean_conf": 0.7498
+  },
+  {
+   "lo": 0.8,
+   "hi": 0.9,
+   "n": 659,
+   "accuracy": 0.8604,
+   "mean_conf": 0.8509
+  },
+  {
+   "lo": 0.9,
+   "hi": 1.0,
+   "n": 357,
+   "accuracy": 0.9804,
+   "mean_conf": 0.9205
+  }
+ ],
+ "reliability_after_answer": [
+  {
+   "lo": 0.0,
+   "hi": 0.1,
+   "n": 0,
+   "accuracy": null,
+   "mean_conf": null
+  },
+  {
+   "lo": 0.1,
+   "hi": 0.2,
+   "n": 0,
+   "accuracy": null,
+   "mean_conf": null
+  },
+  {
+   "lo": 0.2,
+   "hi": 0.3,
+   "n": 37,
+   "accuracy": 0.2973,
+   "mean_conf": 0.2889
+  },
+  {
+   "lo": 0.3,
+   "hi": 0.4,
+   "n": 314,
+   "accuracy": 0.328,
+   "mean_conf": 0.3562
+  },
+  {
+   "lo": 0.4,
+   "hi": 0.5,
+   "n": 381,
+   "accuracy": 0.4646,
+   "mean_conf": 0.4467
+  },
+  {
+   "lo": 0.5,
+   "hi": 0.6,
+   "n": 295,
+   "accuracy": 0.6136,
+   "mean_conf": 0.5512
+  },
+  {
+   "lo": 0.6,
+   "hi": 0.7,
+   "n": 287,
+   "accuracy": 0.7178,
+   "mean_conf": 0.6526
+  },
+  {
+   "lo": 0.7,
+   "hi": 0.8,
+   "n": 279,
+   "accuracy": 0.7742,
+   "mean_conf": 0.7538
+  },
+  {
+   "lo": 0.8,
+   "hi": 0.9,
+   "n": 420,
+   "accuracy": 0.869,
+   "mean_conf": 0.8561
+  },
+  {
+   "lo": 0.9,
+   "hi": 1.0,
+   "n": 1982,
+   "accuracy": 0.9939,
+   "mean_conf": 0.9835
+  }
+ ],
+ "settings": [
+  {
+   "label": "Never ask",
+   "tau": null,
+   "ask_all": false,
+   "accuracy": 0.6278,
+   "accuracy_ci": [
+    0.6083,
+    0.6475
+   ],
+   "ask_rate": 0.0
+  },
+  {
+   "label": "Rarely",
+   "tau": 0.24446865125780587,
+   "ask_all": false,
+   "accuracy": 0.7194,
+   "accuracy_ci": [
+    0.7012,
+    0.7379
+   ],
+   "ask_rate": 0.2866
+  },
+  {
+   "label": "When unsure",
+   "tau": 0.19265451879083717,
+   "ask_all": false,
+   "accuracy": 0.7564,
+   "accuracy_ci": [
+    0.7394,
+    0.7732
+   ],
+   "ask_rate": 0.4658
+  },
+  {
+   "label": "Often",
+   "tau": 0.11605787673585366,
+   "ask_all": false,
+   "accuracy": 0.7902,
+   "accuracy_ci": [
+    0.7746,
+    0.8052
+   ],
+   "ask_rate": 0.6746
+  },
+  {
+   "label": "Always ask",
+   "tau": null,
+   "ask_all": true,
+   "accuracy": 0.8083,
+   "accuracy_ci": [
+    0.7933,
+    0.8228
+   ],
+   "ask_rate": 1.0
+  }
+ ],
+ "latency_s": null,
+ "raw_act_now_all_rows": 0.6014,
+ "questions_available_share": 1.0
+}

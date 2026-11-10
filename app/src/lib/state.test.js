@@ -1,15 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { reducer, initialState } from './state.js';
 import { currentOption, isExhausted } from './flow.js';
+import { optionRows, positionOf, canSelect } from './workspace.js';
 
 const opt = (i, name) => ({ index: i, name, category: 'Cafe', reason: `Reason ${name}` });
+const OPTS = ['A', 'B', 'C', 'D', 'E'].map((name, i) => ({ index: i, name, category: 'Cafe', point: [40.7 + i * 0.01, -74] }));
+const contextData = (extra = {}) => ({
+  domain: 'places', live: true, person: '1', decision: 0, n_decisions: 3, options: OPTS,
+  history: [{ name: 'H', category: 'Bar', point: [40.7, -74] }], history_total: 12,
+  history_summary: [{ category: 'Bar', count: 1 }], ...extra,
+});
 const pickData = (extra = {}) => ({
   stage: 'pick', question: null, answer: null, ruled_out: [], confidence: null, without_answer: null,
   ranking: [opt(0, 'A'), opt(1, 'B'), opt(2, 'C')], history: [{ name: 'H', category: 'Bar' }], history_total: 12,
-  n_decisions: 9, ...extra,
+  n_decisions: 9, options: OPTS, ...extra,
 });
 const questionData = () => ({
-  stage: 'question', question: { text: 'Are you up for a cafe?', category: 'Cafe' }, history: [], history_total: 12, n_decisions: 9,
+  stage: 'question', question: { text: 'Are you up for a cafe?', category: 'Cafe', yes_idx: [0, 1] }, history: [], history_total: 12, n_decisions: 9,
 });
 const run = (s, ...actions) => actions.reduce(reducer, s);
 
@@ -21,7 +28,7 @@ describe('request lifecycle', () => {
     expect(s.busy).toBeNull();
     expect(s.phase).toBe('pick');
     expect(currentOption(s.choice).name).toBe('A');
-    expect(s.knows.total).toBe(12);
+    expect(s.context.history_total).toBe(12);
   });
 
   it('marks slow only for the current request', () => {
@@ -166,5 +173,142 @@ describe('choosing', () => {
     const s = picked();
     expect(reducer(s, { type: 'REVEAL', person: '1', decision: 0, data: { answer_index: 1, name: 'B' } }).reveal.answer_index).toBe(1);
     expect(reducer(s, { type: 'REVEAL', person: '1', decision: 3, data: { answer_index: 1, name: 'B' } })).toBe(s);
+  });
+});
+
+describe('context loading', () => {
+  const loaded = () => run(initialState(),
+    { type: 'CONTEXT_REQUEST', token: 1 },
+    { type: 'CONTEXT_RESPONSE', token: 1, data: contextData() });
+
+  it('starts loading and stores the context from /api/context', () => {
+    expect(initialState().contextStatus).toBe('loading');
+    const s = loaded();
+    expect(s.contextStatus).toBe('ready');
+    expect(s.context.options).toHaveLength(5);
+    expect(s.context.history_summary[0].category).toBe('Bar');
+  });
+
+  it('ignores a context response that was superseded or cancelled', () => {
+    let s = run(initialState(), { type: 'CONTEXT_REQUEST', token: 1 }, { type: 'CONTEXT_REQUEST', token: 2 });
+    expect(reducer(s, { type: 'CONTEXT_RESPONSE', token: 1, data: contextData() })).toBe(s);
+    expect(reducer(s, { type: 'CONTEXT_FAILURE', token: 1, error: { code: 'network' } })).toBe(s);
+  });
+
+  it('shows an error with retry that bumps the epoch', () => {
+    let s = run(initialState(), { type: 'CONTEXT_REQUEST', token: 1 },
+      { type: 'CONTEXT_FAILURE', token: 1, error: { code: 'network', message: '' } });
+    expect(s.contextStatus).toBe('error');
+    const before = s.epoch;
+    s = reducer(s, { type: 'CONTEXT_RETRY' });
+    expect(s.epoch).toBe(before + 1);
+    expect(s.contextStatus).toBe('loading');
+  });
+
+  it('shows the end of decisions when the context says no more decisions', () => {
+    const s = run(initialState(), { type: 'CONTEXT_REQUEST', token: 1 },
+      { type: 'CONTEXT_FAILURE', token: 1, error: { code: 'no_more_decisions', message: '' } });
+    expect(s.phase).toBe('end');
+  });
+
+  it('a pick response refreshes the context', () => {
+    const s = run(loaded(),
+      { type: 'REQUEST', token: 5, decision: 0, answer: null },
+      { type: 'RESPONSE', token: 5, data: pickData({ history_total: 13 }) });
+    expect(s.context.history_total).toBe(13);
+    expect(s.context.options).toHaveLength(5);
+  });
+});
+
+describe('domain switch', () => {
+  it('resets to Person 1, decision 0, clears the flow and invalidates in-flight requests', () => {
+    let s = run(initialState(),
+      { type: 'CONTEXT_REQUEST', token: 1 },
+      { type: 'CONTEXT_RESPONSE', token: 1, data: contextData() },
+      { type: 'SET_PERSON', person: '4' },
+      { type: 'REQUEST', token: 2, decision: 0, answer: null },
+      { type: 'CONTEXT_REQUEST', token: 3 });
+    const epoch = s.epoch;
+    s = reducer(s, { type: 'SET_DOMAIN', domain: 'shopping' });
+    expect(s.domain).toBe('shopping');
+    expect(s.person).toBe('1');
+    expect(s.decision).toBe(0);
+    expect(s.started).toBe(false);
+    expect(s.busy).toBeNull();
+    expect(s.context).toBeNull();
+    expect(s.epoch).toBe(epoch + 1);
+    // late responses from the places requests are ignored
+    expect(reducer(s, { type: 'RESPONSE', token: 2, data: pickData() })).toBe(s);
+    expect(reducer(s, { type: 'CONTEXT_RESPONSE', token: 3, data: contextData() })).toBe(s);
+  });
+
+  it('does nothing when the domain is unchanged', () => {
+    const s = initialState();
+    expect(reducer(s, { type: 'SET_DOMAIN', domain: 'places' })).toBe(s);
+  });
+});
+
+describe('option rows through the decision', () => {
+  const base = () => run(initialState(),
+    { type: 'CONTEXT_REQUEST', token: 1 },
+    { type: 'CONTEXT_RESPONSE', token: 1, data: contextData() });
+  const states = (s) => optionRows(s).map((r) => r.state);
+
+  it('marks the options a yes keeps while the question is shown', () => {
+    const s = run(base(), { type: 'REQUEST', token: 2, decision: 0, answer: null },
+      { type: 'RESPONSE', token: 2, data: questionData() });
+    expect(states(s)).toEqual(['kept', 'kept', 'default', 'default', 'default']);
+    expect(optionRows(s).map((r) => r.letter)).toEqual(['A', 'B', 'C', 'D', 'E']);
+  });
+
+  it('excludes the ruled-out options after an answer and marks the pick', () => {
+    const ranking = [opt(1, 'B'), opt(0, 'A')];
+    const s = run(base(),
+      { type: 'REQUEST', token: 2, decision: 0, answer: null },
+      { type: 'RESPONSE', token: 2, data: questionData() },
+      { type: 'REQUEST', token: 3, decision: 0, answer: 'yes' },
+      { type: 'RESPONSE', token: 3, data: pickData({ ranking, ruled_out: [OPTS[2], OPTS[3], OPTS[4]], answer: 'yes', question: { text: 'q', category: 'c', yes_idx: [0, 1] } }) });
+    expect(states(s)).toEqual(['default', 'pick', 'excluded', 'excluded', 'excluded']);
+  });
+
+  it('clicking a row makes it the pick, and Not for me marks it passed', () => {
+    let s = run(base(), { type: 'REQUEST', token: 2, decision: 0, answer: null },
+      { type: 'RESPONSE', token: 2, data: pickData({ ranking: OPTS.map((o) => opt(o.index, o.name)) }) });
+    const rowC = optionRows(s)[2];
+    expect(canSelect(rowC, s.phase, s.choice)).toBe(true);
+    expect(canSelect(optionRows(s)[0], s.phase, s.choice)).toBe(false); // the pick itself
+    s = reducer(s, { type: 'SELECT_OPTION', position: positionOf(s.choice, 2) });
+    expect(states(s)[2]).toBe('pick');
+    expect(states(s)[0]).toBe('default');
+    s = reducer(s, { type: 'NOT_FOR_ME' });
+    expect(states(s)[2]).toBe('passed');
+    expect(states(s)[0]).toBe('pick');
+    expect(canSelect(optionRows(s)[2], s.phase, s.choice)).toBe(false);
+  });
+
+  it('an excluded row is not selectable', () => {
+    const s = run(base(), { type: 'REQUEST', token: 2, decision: 0, answer: null },
+      { type: 'RESPONSE', token: 2, data: pickData({ ranking: [opt(0, 'A')], ruled_out: [OPTS[1], OPTS[2], OPTS[3], OPTS[4]] }) });
+    expect(canSelect(optionRows(s)[3], s.phase, s.choice)).toBe(false);
+    expect(positionOf(s.choice, 3)).toBe(-1);
+  });
+});
+
+describe('moving between decisions', () => {
+  it('next decision clears the flow and the context so the new options load', () => {
+    let s = run(initialState(), { type: 'CONTEXT_REQUEST', token: 1 }, { type: 'CONTEXT_RESPONSE', token: 1, data: contextData() },
+      { type: 'REQUEST', token: 2, decision: 0, answer: null }, { type: 'RESPONSE', token: 2, data: pickData() },
+      { type: 'ACCEPT' }, { type: 'NEXT_DECISION' });
+    expect(s.decision).toBe(1);
+    expect(s.phase).toBe('start');
+    expect(s.context).toBeNull();
+    expect(s.contextStatus).toBe('loading');
+  });
+
+  it('after the last decision it shows the end screen without a request', () => {
+    let s = run(initialState(), { type: 'CONTEXT_REQUEST', token: 1 }, { type: 'CONTEXT_RESPONSE', token: 1, data: contextData({ n_decisions: 1 }) },
+      { type: 'NEXT_DECISION' });
+    expect(s.phase).toBe('end');
+    expect(reducer(s, { type: 'RESTART' }).decision).toBe(0);
   });
 });
