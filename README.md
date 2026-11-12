@@ -98,7 +98,7 @@ checksum. To run the code in `src/` and `hpc/`, place the release under `data/ma
 
 Venue histories can identify a person. The code and documents show no user id, no exact time and no coordinates. The
 exceptions are the interface samples in `app/public/data/`: `places.json` holds 105 held-out decisions of 12 people,
-each with that person's recent places, under the dataset's Apache 2.0 license, and `shopping.json` (used by the Milestone 4 interface, not the live one) holds 62 held-out
+each with that person's recent places, under the dataset's Apache 2.0 license, and `shopping.json` (served by the API for the Shopping tab, which replays saved scores) holds 62 held-out
 purchase decisions of 12 people from Amazon Reviews 2023 (video games), with product titles only. In that file user ids are replaced by "Person 1" to
 "Person 12", homes carry no name, and places that reveal health, religion, sexual orientation, a home or student housing are shown
 only by a generic label such as "Health care", "Place of worship" or "Residence" (a medical school shows as "College"). See `app/public/data/NOTICE.md`.
