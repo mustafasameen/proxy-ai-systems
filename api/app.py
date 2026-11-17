@@ -81,7 +81,6 @@ PEOPLE = DOMAINS["places"]["people"]       # kept for tests and the health check
 CARD_DATA = DOMAINS["places"]["card"]
 
 app = FastAPI(title="PROXY API", docs_url=None, redoc_url=None, openapi_url=None)
-app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 _hits = defaultdict(deque)
 _cache = OrderedDict()   # (domain, person, decision) -> (time, probs, model latency)
@@ -119,6 +118,11 @@ async def guard(request: Request, call_next):
     return response
 
 
+# Added after the guard, so it is the outermost layer: the guard's own 413 and 429 replies also carry CORS headers,
+# and the browser app can read them instead of reporting a network failure.
+app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+
+
 Domain = Literal["places", "shopping"]
 
 
@@ -145,7 +149,7 @@ def get_decision(domain, person, idx):
     return ds[idx]
 
 
-def model_probs(domain, person, idx, decision):
+def model_probs(domain, person, idx, decision, rid=None):
     if not DOMAINS[domain]["live"]:
         return list(decision["probs"]), None, False
     key = (domain, person, idx)
@@ -160,6 +164,10 @@ def model_probs(domain, person, idx, decision):
                                      model=MODEL, timeout_s=TIMEOUT_S)
     except core.GatewayError as e:
         GW_ERR.labels(e.kind).inc()
+        # one line per gateway failure: the kind and the HTTP status only, never the key or the prompt
+        log.warning(json.dumps({"rid": rid, "event": "gateway_error", "kind": e.kind, "detail": e.detail}))
+        if e.kind == "auth":
+            raise HTTPException(503, {"error": "gateway_auth", "message": "PROXY is not set up correctly."})
         if e.kind == "timeout":
             raise HTTPException(504, {"error": "timeout", "message": "PROXY couldn't finish this request."})
         if e.kind == "busy":
@@ -246,7 +254,7 @@ def config(domain: Domain = "places"):
 def pick(body: PickIn, request: Request):
     dom = DOMAINS[body.domain]
     d = get_decision(body.domain, body.person, body.decision)
-    probs, lat, cached = model_probs(body.domain, body.person, body.decision, d)
+    probs, lat, cached = model_probs(body.domain, body.person, body.decision, d, request.state.rid)
     setting = dom["settings"][body.setting]
     q = question_of(body.domain, probs, d)
     ask = q is not None and core.should_ask(q[0], setting)

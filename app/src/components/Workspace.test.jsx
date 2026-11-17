@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { OptionsList, Outcome, showCategory } from './Flow.jsx';
+import { OptionsList, Outcome, Pick, pickLabel, showCategory } from './Flow.jsx';
+import SettingsSheet from './SettingsSheet.jsx';
+import { selectOption, rejectCurrent, initChoice } from '../lib/flow.js';
 import MapView, { placeOptions } from './MapView.jsx';
 import { makeProjection } from '../lib/map.js';
 
@@ -14,7 +16,7 @@ describe('options list', () => {
       <OptionsList rows={[row(0, 'default'), row(1, 'pick'), row(2, 'excluded')]} phase="pick" choice={choice} reveal={null} onSelect={() => {}} />,
     );
     expect(html).toContain('Babbo');
-    expect(html).toContain("PROXY&#x27;s pick");
+    expect(html).toContain("PROXY&#x27;s next pick");
     expect(html).toContain('Excluded by your answer');
     expect((html.match(/<button/g) || []).length).toBe(1);
     expect(html).toContain('opt-excluded');
@@ -35,8 +37,9 @@ describe('map view', () => {
     const html = renderToStaticMarkup(
       <MapView history={history} rows={[row(0, 'default'), row(1, 'pick'), row(2, 'passed')]} outline={null} bounds={null} />,
     );
-    expect(html).toContain('aria-label="Map of 1 past visits and 3 options"');
+    expect(html).toContain('aria-label="Map of 1 past visits and 3 options. PROXY does not use this map."');
     expect(html).toContain('role="img"');
+    expect(html).toContain('Map. PROXY does not use this map.');
     expect(html).toContain('map-pick');
     expect(html).toContain('is-faded');
     const project = makeProjection([[40.72, -74.0], ...options.map((o) => o.point)]);
@@ -90,5 +93,67 @@ describe('linked map focus', () => {
     expect(html).toContain('map-visit is-on');
     expect(html).toContain('map-visit is-dim');
     expect(html).toContain('class="map-name"');
+  });
+});
+
+describe('pilot fixes', () => {
+  it('names each pick correctly: PROXY, PROXY next, or the user', () => {
+    const ranking = [0, 1, 2].map((i) => ({ index: i, name: `N${i}` }));
+    const first = initChoice(ranking);
+    expect(pickLabel(first)).toBe("PROXY's pick");
+    expect(pickLabel(rejectCurrent(first))).toBe("PROXY's next pick");
+    expect(pickLabel(selectOption(first, 2))).toBe('Your choice');
+    expect(pickLabel(selectOption(selectOption(first, 2), 0))).toBe("PROXY's pick");
+  });
+
+  it('keeps the real choice row at full strength even when it was excluded', () => {
+    const choice = { ranking: options, current: 1, rejected: [], accepted: false };
+    const html = renderToStaticMarkup(
+      <OptionsList rows={[row(0, 'excluded'), row(1, 'pick'), row(2, 'default')]} phase="pick" choice={choice} reveal={{ answer_index: 0, name: 'Babbo' }} onSelect={() => {}} />,
+    );
+    expect(html).toContain('opt-excluded is-real');
+    expect(html).toContain('real choice');
+    expect(html).not.toContain('opt-pick is-real');
+  });
+
+  it('shows a masked home as a private place with the reason', () => {
+    const priv = { index: 0, name: 'Home', category: 'private', point: null };
+    const html = renderToStaticMarkup(
+      <OptionsList rows={[{ option: priv, letter: 'A', state: 'default' }]} phase="start" choice={null} reveal={null} onSelect={() => {}} />,
+    );
+    expect(html).toContain('A private place (name hidden)');
+    expect(html).toContain('Private places are not shown on the map');
+    expect(html).not.toContain('>private<');
+    expect(showCategory(priv)).toBe(false);
+  });
+
+  it('counts only the options the answer left once they are all turned down', () => {
+    const kept = { index: 1, name: 'Booker', category: 'Cocktail Bar' };
+    const noop = () => {};
+    const render = (ranking, ruledOut) => renderToStaticMarkup(
+      <Pick
+        state={{ response: { answer: 'yes', ranking, ruled_out: ruledOut, confidence: null }, choice: { ranking, current: null, rejected: ranking.map((_, i) => i), accepted: false, byUser: false }, reveal: null }}
+        domain="places" total={5} onChoose={noop} onReject={noop} onNext={noop} onChangeAnswer={noop} onReveal={noop}
+      />,
+    );
+    const one = render([kept], [0, 2, 3, 4]);
+    expect(one).toContain('That was the only option left.');
+    expect(one).not.toContain('all five options');
+    expect(one).toContain('Change your answer');
+    const all = render([0, 1, 2, 3, 4].map((index) => ({ index, name: `N${index}` })), []);
+    expect(all).toContain('That&#x27;s all five options.');
+  });
+
+  it('heads the settings percentages "Match rate"', () => {
+    const config = {
+      settings: [{ label: 'Never ask', ask_rate: 0, accuracy: 0.37, accuracy_ci: [0.3, 0.4] }],
+      evaluation: { report_rows: 100, report_users: 20 },
+    };
+    const html = renderToStaticMarkup(
+      <SettingsSheet domain="places" config={config} setting="Never ask" devView={false} onSetting={() => {}} onDev={() => {}} onAbout={() => {}} onClose={() => {}} />,
+    );
+    expect(html).toContain('Match rate');
+    expect(html).toContain('37%');
+    expect(html).toContain('restarts the current decision');
   });
 });

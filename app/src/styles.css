@@ -10,6 +10,7 @@
   --ink-btn-text: #ffffff;
   --accent-blue: #0072b2;
   --accent-verm: #d55e00;
+  --real: #a64400;
   --font: Inter, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
@@ -27,6 +28,7 @@
     --ink-btn-text: #18181b;
     --accent-blue: #56b4e9;
     --accent-verm: #f0a06a;
+    --real: #f0a06a;
     color-scheme: dark;
   }
 }
@@ -42,6 +44,7 @@
   --ink-btn-text: #18181b;
   --accent-blue: #56b4e9;
   --accent-verm: #f0a06a;
+  --real: #f0a06a;
   color-scheme: dark;
 }
 
@@ -122,6 +125,8 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 .text-link { font: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .text-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
 .hint .text-link, .you-said .text-link { color: var(--text); }
+/* a 44 px target for "Change" without moving the line around it */
+.hint .text-link { display: inline-block; padding: 10px 6px; margin: -10px -6px; }
 
 .answer-row { display: flex; gap: 12px; margin-top: 24px; }
 .answer-row .secondary-btn { min-width: 88px; }
@@ -146,7 +151,7 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 .why .kicker { margin-bottom: 4px; }
 .confidence { margin-top: 12px; }
 .confidence strong { font-weight: 600; color: var(--text); }
-.real { color: var(--accent-verm); font-size: 14px; font-weight: 600; }
+.real { color: var(--real); font-size: 14px; font-weight: 600; }
 
 .changed { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 16px; }
 .changed summary { cursor: pointer; font-weight: 500; min-height: 24px; }
@@ -170,6 +175,9 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 .radio-text { display: flex; flex-direction: column; flex: 1; }
 .radio-label { font-weight: 600; }
 .radio-rate { font-weight: 500; }
+.radio-head { text-align: right; padding: 8px 0 4px; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.map-heading { margin: 16px 0 8px; font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text); }
+.all-rejected { margin-top: 8px; }
 .note { font-size: 14px; color: var(--text-2); margin-top: 16px; }
 .sheet-section { border-top: 1px solid var(--rule); margin-top: 24px; padding-top: 16px; }
 .toggle-row { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; }
@@ -233,6 +241,9 @@ h2.kicker, h3.kicker { font-weight: 500; line-height: 1.5; }
 .options { border-top: 1px solid var(--rule); }
 .opt { border-bottom: 1px solid var(--rule); opacity: 1; transition: opacity 220ms ease-out; }
 .opt-excluded, .opt-passed { opacity: 0.25; }
+/* the real choice stays at full strength even when the answer ruled it out */
+.opt.is-real { opacity: 1; }
+.opt.is-real .opt-meta { color: var(--text-2); }
 .opt-main {
   display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; background: none; border: 0;
   border-left: 2px solid transparent; border-radius: 0; padding: 12px 8px 12px 10px; min-height: 44px;

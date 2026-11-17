@@ -26,14 +26,28 @@ export function askRateText(rate) {
   return `Asks about ${n} in 10 times`;
 }
 
-// Confidence line, or null when the API sent none.
-export function confidenceParts(confidence) {
+// The match-rate line, or null when the API sent none. The number is a past track record: how often held-out picks
+// with a similar model confidence matched the real choice. It is not the chance that this pick is right. After a yes or
+// no the record comes from tests whose answers were simulated from the real choice, and the line says so.
+export function confidenceLine(confidence, answered = false) {
   if (!confidence || !confidence.label) return null;
-  return {
-    label: confidence.label,
-    rest: ` · Similar picks matched the real choice about ${confidence.matched_out_of_10} in 10 times.`,
-  };
+  const when = answered ? 'In past tests with answers simulated from the real choice,' : 'In past tests,';
+  return `${when} similar picks matched the real choice about ${confidence.matched_out_of_10} in 10 times (${confidence.label.toLowerCase()}).`;
 }
+
+// Why a pick has no match rate. The reasons are the ones the API applies: only the first pick was measured, an answer
+// that leaves one option has no record, and a thin group of similar picks has no record.
+export function noRateLine({ later, answered, single }) {
+  if (later) return "There is no match rate for this option. Past tests measured PROXY's first pick only.";
+  if (answered && single) return 'There is no match rate here. Your answer left only one option.';
+  return 'There is no match rate for this pick. Too few similar picks were seen in past tests.';
+}
+
+// A masked home is stored as the name "Home" with the kind "private".
+export const PRIVATE_NAME = 'A private place (name hidden)';
+export const PRIVATE_WHY = 'The name is hidden. Private places are not shown on the map.';
+export const isPrivate = (o) => Boolean(o) && String(o.name).trim().toLowerCase() === 'home' && String(o.category || '').trim().toLowerCase() === 'private';
+export const displayName = (o) => (isPrivate(o) ? PRIVATE_NAME : (o && o.name) || '');
 
 export const ANSWER_LABELS = { yes: 'Yes', no: 'No', skip: 'Skip' };
 
@@ -45,6 +59,7 @@ const ERROR_MESSAGES = {
   timeout: "PROXY couldn't finish this request.",
   no_options: 'No recommendation was returned.',
   rate_limited: 'Too many requests. Wait a minute and try again.',
+  gateway_auth: 'PROXY is not set up correctly.',
 };
 
 export function errorMessage(code, serverMessage) {
@@ -56,8 +71,10 @@ export function errorMessage(code, serverMessage) {
 export const COPY = {
   wordmark: 'PROXY',
   settingsLabel: 'Settings',
-  personSwitcherLabel: 'Demo person',
+  personSwitcherLabel: 'Person',
   startHintBefore: 'PROXY asks one question first if it could help.',
+  startHintNever: 'PROXY will not ask a question.',
+  startHintAlways: 'PROXY asks one question first whenever it has one.',
   startHintChange: 'Change',
   startButton: 'Let PROXY choose',
   loadingOptions: 'Loading the options…',
@@ -73,7 +90,8 @@ export const COPY = {
   showFewer: 'Show fewer',
   legendVisit: 'Past visit',
   legendOption: 'Option',
-  legendPick: "PROXY's pick",
+  legendPick: 'Current pick',
+  mapHeading: 'Map. PROXY does not use this map.',
   mapCaption: "Location context only. PROXY's model sees names and kinds of places, not locations. Points are rounded to about 500 m, and private places are not shown.",
   mapUnavailable: 'The borough outline could not be loaded.',
   looking: 'Looking through your options…',
@@ -85,7 +103,14 @@ export const COPY = {
   no: 'No',
   skip: 'Skip',
   changeAnswer: 'Change answer',
-  pickKicker: 'YOUR PICK',
+  pickKicker: "PROXY'S PICK",
+  nextPickKicker: "PROXY'S NEXT PICK",
+  yourChoiceKicker: 'YOUR CHOICE',
+  nextPick: "PROXY's next pick",
+  yourChoice: 'Your choice',
+  changeYourAnswer: 'Change your answer',
+  matchRate: 'Match rate',
+  settingsRestart: 'Changing the setting restarts the current decision.',
   whyHeading: 'From their history',
   notForMe: 'Not for me',
   nextDecision: 'Next decision',
@@ -179,7 +204,7 @@ export function showAll(n) {
 }
 
 export function mapLabel(visits, options) {
-  return `Map of ${visits} past visits and ${options} options`;
+  return `Map of ${visits} past visits and ${options} options. PROXY does not use this map.`;
 }
 
 export function accepted(name) {
@@ -197,8 +222,7 @@ export function offVisits(n) {
 
 export const ROLE_LINE = "Answer as this person would, using their history. Skip if the evidence isn't enough.";
 export const MECHANISM = 'PROXY has already scored all five options. Your answer rules some out, and PROXY picks the highest scored option left.';
-export const LATER_PICK_NOTE = 'A match rate is shown for the first pick only.';
-export const PICKED_LABEL = 'PROXY PICKED';
+export const PICKED_LABEL = "PROXY'S FIRST PICK";
 export const REAL_LABEL = 'REAL CHOICE';
 export const MODEL_READS = 'What the model reads';
 export const EXACT_INPUT = 'The exact text the model scores';
@@ -209,14 +233,19 @@ export const PICK_MISSED = "PROXY's pick did not match.";
 export const KIND_HINT = 'Select a kind to see where it shows up.';
 export const SHOW_ALL_KINDS = 'Clear';
 
+// Same list as the API's UNCOUNTABLE: generic kinds that take no article.
+const MASS_KINDS = new Set(['health care', 'general entertainment', 'arts & entertainment']);
+
 export function evidenceLine(domain, ev) {
   const n = ev.count;
   if (domain === 'shopping') {
     const what = n === 1 ? '1 was' : `${n} were`;
     return `Of their last ${ev.total} purchases, ${what} from ${ev.category}.`;
   }
-  const what = n === 1 ? '1 was a' : `${n} were a`;
-  return `Of their last ${ev.total} places, ${what} ${ev.category.toLowerCase()}.`;
+  const kind = ev.category.toLowerCase();
+  const art = MASS_KINDS.has(kind) ? '' : ' a';
+  const what = n === 1 ? `1 was${art}` : `${n} were${art}`;
+  return `Of their last ${ev.total} places, ${what} ${kind}.`;
 }
 
 export function tallyLine(matched, seen) {
@@ -263,8 +292,22 @@ export function youSaid(answer) {
   return `You said: ${ANSWER_LABELS[answer] || answer}`;
 }
 
-export function allRejected(total) {
-  return `That's all ${numberWord(total)} options.`;
+// Heading once every option still in play has been turned down. `left` is how many options the answer kept.
+export function allRejected(total, left = total) {
+  if (left >= total) return `That's all ${numberWord(total)} options.`;
+  if (left === 1) return 'That was the only option left.';
+  return `That's all ${numberWord(left)} options left.`;
+}
+
+// Shown when every option left after a yes or no has been turned down.
+export function answerLeftNone(answer, ruledOut) {
+  return `${ruledOutLine(answer, ruledOut)} Change your answer to see more picks.`;
+}
+
+export function startHint(setting) {
+  if (setting === 'Never ask') return COPY.startHintNever;
+  if (setting === 'Always ask') return COPY.startHintAlways;
+  return COPY.startHintBefore;
 }
 
 export function endOfDecisions(person) {
@@ -313,12 +356,12 @@ export function allCopyStrings() {
   walk(COPY);
   walk(ERROR_MESSAGES);
   walk(ANSWER_LABELS);
-  const c = confidenceParts({ label: 'Higher confidence', matched_out_of_10: 7 });
-  out.push(c.label + c.rest);
+  out.push(confidenceLine({ label: 'Higher confidence', matched_out_of_10: 7 }), confidenceLine({ label: 'Lower confidence', matched_out_of_10: 3 }, true));
+  out.push(noRateLine({ later: true }), noRateLine({ answered: true, single: true }), noRateLine({}), PRIVATE_NAME, PRIVATE_WHY, answerLeftNone('yes', 4), startHint('Never ask'), startHint('Always ask'), startHint('Rarely'));
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
-  out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), endOfDecisions('1'), andMore(12));
+  out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), allRejected(5, 1), allRejected(5, 3), endOfDecisions('1'), andMore(12));
   out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
-  out.push(MECHANISM, LATER_PICK_NOTE, MODEL_READS, EXACT_INPUT, ruledOutLine('no', 1), ruledOutLine('yes', 3), ruledOutLine('no', 0), ...modelReadsLines('places'), ...modelReadsLines('shopping'), tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
+  out.push(MECHANISM, MODEL_READS, EXACT_INPUT, ruledOutLine('no', 1), ruledOutLine('yes', 3), ruledOutLine('no', 0), ...modelReadsLines('places'), ...modelReadsLines('shopping'), tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
   out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
   out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {

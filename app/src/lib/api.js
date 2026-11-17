@@ -31,14 +31,23 @@ export function codeFromResponse(status, body) {
   if (status === 429) return 'rate_limited';
   if (status === 504) return 'timeout';
   if (status === 503) return 'model_unavailable';
-  if (status === 422) return 'no_options';
+  if (status === 422) return 'invalid_request';
   if (status === 404) return 'unknown_person';
   return 'server_error';
 }
 
+// A rejected request (FastAPI validation) sends a list of problems. Name the field and give the server's own words.
+function validationMessage(detail) {
+  const first = detail.find((d) => d && typeof d.msg === 'string');
+  if (!first) return '';
+  const field = Array.isArray(first.loc) ? first.loc.filter((p) => typeof p === 'string' && p !== 'body').pop() : '';
+  return `The request was not accepted: ${field ? `${field}: ` : ''}${first.msg}`;
+}
+
 function messageFromResponse(body) {
   const detail = body && body.detail;
-  if (detail && !Array.isArray(detail) && detail.message) return detail.message;
+  if (Array.isArray(detail)) return validationMessage(detail);
+  if (detail && detail.message) return detail.message;
   if (body && body.message) return body.message;
   return '';
 }
