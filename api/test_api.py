@@ -242,3 +242,60 @@ def test_context_shows_the_exact_model_input():
         d = appmod.get_decision(dom, "1", 0)
         want = core.build_prompt_shopping(d) if dom == "shopping" else core.build_prompt(d)
         assert j["model_input"] == want and "Answer with one letter" in want
+
+
+# ---- fixes from the pilot walkthroughs ------------------------------------------------------------------------------
+
+def test_limit_replies_carry_cors_headers(monkeypatch):
+    """The browser app can only show "Too many requests" if the 429 (and the 413) carry Access-Control-Allow-Origin."""
+    origin = api.ORIGINS[0]
+    monkeypatch.setattr(api, "RATE_PER_MIN", 1)
+    monkeypatch.setattr(core, "score_options", stub([-1, -2, -3, -4, -5]))
+    h = {"Origin": origin}
+    ok = client.post("/api/pick", json={"person": "1", "decision": 0}, headers=h)
+    limited = client.post("/api/pick", json={"person": "1", "decision": 0}, headers=h)
+    assert ok.status_code == 200 and limited.status_code == 429
+    assert limited.headers.get("access-control-allow-origin") == origin
+    big = client.post("/api/pick", content=b"{" + b" " * 5000 + b"}", headers={**h, "Content-Type": "application/json"})
+    assert big.status_code == 413 and big.headers.get("access-control-allow-origin") == origin
+    other = client.post("/api/pick", json={"person": "1", "decision": 0}, headers={"Origin": "http://evil.example"})
+    assert "access-control-allow-origin" not in other.headers
+
+
+@pytest.mark.parametrize("code,kind", [(401, "auth"), (403, "auth"), (429, "busy"), (500, "unavailable")])
+def test_gateway_http_status_sets_the_failure_kind(code, kind, monkeypatch):
+    import io
+    import urllib.error
+
+    def fake(req, timeout=None):
+        raise urllib.error.HTTPError("http://stub.invalid", code, "x", {}, io.BytesIO(b""))
+    monkeypatch.setattr(core.urllib.request, "urlopen", fake)
+    with pytest.raises(core.GatewayError) as e:
+        core.score_options("p", base_url="http://stub.invalid", api_key="k", model="m", timeout_s=1)
+    assert e.value.kind == kind
+
+
+def test_bad_gateway_key_is_an_auth_error_not_a_network_failure(monkeypatch, caplog):
+    def boom(prompt, **kw):
+        raise core.GatewayError("auth", "HTTP 401")
+    monkeypatch.setattr(core, "score_options", boom)
+    before = api.GW_ERR.labels("auth")._value.get()
+    with caplog.at_level("INFO", logger="proxy"):
+        r = client.post("/api/pick", json={"person": "1", "decision": 0})
+    d = r.json()["detail"]
+    assert r.status_code == 503 and d["error"] == "gateway_auth" and d["message"] == "PROXY is not set up correctly."
+    assert api.GW_ERR.labels("auth")._value.get() == before + 1
+    lines = [json.loads(x.getMessage()) for x in caplog.records if x.getMessage().startswith("{")]
+    gw = [x for x in lines if x.get("event") == "gateway_error"]
+    assert gw and gw[0]["kind"] == "auth" and gw[0]["detail"] == "HTTP 401"
+    assert api.GATEWAY_KEY not in " ".join(x.getMessage() for x in caplog.records)
+    assert "gateway_auth" in client.get("/metrics").text or 'kind="auth"' in client.get("/metrics").text
+
+
+def test_question_and_reason_wording_for_generic_kinds():
+    """No article before a mass noun: "Are you up for health care?", not "a health care"."""
+    assert core.question_text("Health care") == "Are you up for health care?"
+    assert core.question_text("General Entertainment") == "Are you up for general entertainment?"
+    assert core.question_text("Cocktail Bar") == "Are you up for a cocktail bar?"
+    assert core.question_text("Italian Restaurant") == "Are you up for an Italian restaurant?"
+    assert core.reason_line({"category": "Health care"}, []) == "A new kind of place for you: none of your last 0 places was health care."

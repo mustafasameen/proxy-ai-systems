@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  COPY, EXACT_INPUT, KIND_HINT, MODEL_READS, SHOW_ALL_KINDS, dc, evidenceLine, modelReadsLines, showAll,
+  COPY, EXACT_INPUT, KIND_HINT, MODEL_READS, SHOW_ALL_KINDS, dc, displayName, evidenceLine, isPrivate, modelReadsLines, showAll,
 } from '../lib/copy.js';
 import { evidence, focusKind, sameKind, summaryLine } from '../lib/workspace.js';
 import MapView from './MapView.jsx';
@@ -56,8 +56,8 @@ function Recent({ history, domain, kind }) {
       <ul className="plain-list">
         {items.map((h, i) => (
           <li key={`${h.name}-${i}`} className={kind && sameKind(h.category, kind) ? 'is-on' : undefined}>
-            <span>{h.name}</span>
-            {h.category && !sameKind(h.category, h.name) && <span className="meta"> · {h.category}</span>}
+            <span>{displayName(h)}</span>
+            {h.category && !isPrivate(h) && !sameKind(h.category, h.name) && <span className="meta"> · {h.category}</span>}
           </li>
         ))}
       </ul>

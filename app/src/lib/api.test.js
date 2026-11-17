@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { errorMessage } from './copy.js';
 import { request, postPick, postContext, postReveal, getConfig, getOutline, codeFromResponse, ApiError } from './api.js';
 
 function jsonResponse(status, body) {
@@ -109,11 +110,31 @@ describe('request', () => {
     await expect(request('/x', { fetchImpl: f }).promise).rejects.toMatchObject({ code, status });
   });
 
+  it('shows the server validation message for a 422 instead of "no options"', async () => {
+    const body = { detail: [{ loc: ['body', 'person'], msg: "String should match pattern '^[0-9]+$'" }] };
+    const f = vi.fn(async () => jsonResponse(422, body));
+    const err = await request('/x', { fetchImpl: f }).promise.catch((e) => e);
+    expect(err.code).toBe('invalid_request');
+    expect(err.message).toBe("The request was not accepted: person: String should match pattern '^[0-9]+$'");
+    expect(errorMessage(err.code, err.message)).toBe(err.message);
+    expect(errorMessage(err.code, err.message)).not.toMatch(/recommendation/);
+  });
+
+  it('keeps the no_options code when the API names it', async () => {
+    const f = vi.fn(async () => jsonResponse(422, { detail: { error: 'no_options', message: 'n' } }));
+    await expect(request('/x', { fetchImpl: f }).promise).rejects.toMatchObject({ code: 'no_options' });
+  });
+
+  it('shows "not set up" for a bad gateway key, not a network failure', () => {
+    expect(errorMessage('gateway_auth', 'x')).toBe('PROXY is not set up correctly.');
+    expect(errorMessage('gateway_auth')).not.toBe(errorMessage('network'));
+  });
+
   it('falls back to the status when the body has no code', () => {
     expect(codeFromResponse(429, null)).toBe('rate_limited');
     expect(codeFromResponse(504, {})).toBe('timeout');
     expect(codeFromResponse(503, {})).toBe('model_unavailable');
-    expect(codeFromResponse(422, { detail: [{ msg: 'x' }] })).toBe('no_options');
+    expect(codeFromResponse(422, { detail: [{ msg: 'x' }] })).toBe('invalid_request');
     expect(codeFromResponse(500, null)).toBe('server_error');
   });
 });

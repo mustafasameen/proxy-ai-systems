@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import {
-  COPY, LATER_PICK_NOTE, MECHANISM, PICKED_LABEL, PICK_MATCHED, PICK_MISSED, REAL_LABEL, ROLE_LINE, SEE_REAL, ruledOutLine, accepted, allRejected, confidenceParts, dc, decisionOf, endOfDecisions,
-  errorMessage, leanLine, noQuestionLine, tallyLine, truthfulLine, workspaceTitle, youSaid,
+  COPY, MECHANISM, PICKED_LABEL, PICK_MATCHED, PICK_MISSED, PRIVATE_WHY, REAL_LABEL, ROLE_LINE, SEE_REAL, answerLeftNone, ruledOutLine, accepted, allRejected,
+  confidenceLine, dc, decisionOf, displayName, endOfDecisions, errorMessage, evidenceLine, isPrivate, leanLine, noQuestionLine, noRateLine, startHint, tallyLine, truthfulLine, workspaceTitle, youSaid,
 } from '../lib/copy.js';
 import { currentOption, isExhausted } from '../lib/flow.js';
-import { canSelect, optionRows, positionOf, yesKeeps } from '../lib/workspace.js';
+import { canSelect, evidence, optionRows, positionOf, yesKeeps } from '../lib/workspace.js';
 import DevPanel from './DevPanel.jsx';
 
 function Status({ state, onCancel }) {
@@ -52,14 +52,20 @@ function RealMark({ revealed, option }) {
 
 // A generic place (a residence, a clinic) is named by its kind, so the kind line would only repeat the name.
 export function showCategory(option) {
-  return Boolean(option.category) && option.category.trim().toLowerCase() !== String(option.name).trim().toLowerCase();
+  return Boolean(option.category) && !isPrivate(option) && option.category.trim().toLowerCase() !== String(option.name).trim().toLowerCase();
 }
 
-function metaFor(row) {
+// The current pick is PROXY's pick only until the user clicks another row, and PROXY's next pick after "Not for me".
+export function pickLabel(choice) {
+  if (choice && choice.byUser) return COPY.yourChoice;
+  return choice && choice.current > 0 ? COPY.nextPick : COPY.isPick;
+}
+
+function metaFor(row, choice) {
   if (row.state === 'kept') return COPY.keptIfYes;
   if (row.state === 'excluded') return COPY.excluded;
   if (row.state === 'passed') return COPY.passed;
-  if (row.state === 'pick') return COPY.isPick;
+  if (row.state === 'pick') return pickLabel(choice);
   return '';
 }
 
@@ -68,15 +74,17 @@ export function OptionsList({ rows, phase, choice, reveal, onSelect, focusOption
     <ol className="options" aria-label={COPY.optionsLabel}>
       {rows.map((row) => {
         const { option } = row;
-        const meta = metaFor(row);
+        const meta = metaFor(row, choice);
+        const isReal = Boolean(reveal) && reveal.answer_index === option.index;
         const inner = (
           <>
             <span className="opt-letter num" aria-hidden="true">{row.letter}</span>
             {Array.isArray(option.point) ? <Diamond pick={row.state === 'pick'} /> : <span className="diamond" aria-hidden="true" />}
             <span className="opt-text">
-              <span className={option.name.length > 60 ? 'opt-name long' : 'opt-name'}>{option.name}</span>
+              <span className={option.name.length > 60 ? 'opt-name long' : 'opt-name'}>{displayName(option)}</span>
               {showCategory(option) && <span className="opt-cat">{option.category}</span>}
-              {(meta || (reveal && reveal.answer_index === option.index)) && (
+              {isPrivate(option) && <span className="opt-cat">{PRIVATE_WHY}</span>}
+              {(meta || isReal) && (
                 <span className={row.state === 'kept' ? 'opt-meta kept' : 'opt-meta'}>
                   {meta}
                   <RealMark revealed={reveal} option={option} />
@@ -88,7 +96,7 @@ export function OptionsList({ rows, phase, choice, reveal, onSelect, focusOption
         return (
           <li
             key={option.index}
-            className={`opt opt-${row.state}${focusOption === option.index ? ' is-focus' : ''}`}
+            className={`opt opt-${row.state}${isReal ? ' is-real' : ''}${focusOption === option.index ? ' is-focus' : ''}`}
             data-state={row.state}
             onMouseEnter={() => onOption(option.index)}
             onMouseLeave={() => onOption(null)}
@@ -109,12 +117,12 @@ export function OptionsList({ rows, phase, choice, reveal, onSelect, focusOption
   );
 }
 
-function Idle({ onFind, onSettings, ready, busy }) {
+function Idle({ onFind, onSettings, ready, busy, setting }) {
   return (
     <div className="idle">
       <button type="button" className="primary-btn" disabled={busy || !ready} onClick={onFind}>{COPY.startButton}</button>
       <p className="hint">
-        {COPY.startHintBefore}{' '}
+        {startHint(setting)}{' '}
         <button type="button" className="text-link" onClick={onSettings}>{COPY.startHintChange}</button>
       </p>
     </div>
@@ -124,12 +132,15 @@ function Idle({ onFind, onSettings, ready, busy }) {
 function Question({ state, total, onAnswer }) {
   const busy = Boolean(state.busy);
   const k = Array.isArray(state.question.yes_idx) ? state.question.yes_idx.length : null;
+  // the same count the context column shows, here beside the question so it is read first
+  const ev = evidence(state.context && state.context.history, state.question);
   return (
     <div>
       <p className="meta role">{ROLE_LINE}</p>
-      {state.leading && <p className="meta lean">{leanLine(state.leading.name)}</p>}
+      {state.leading && <p className="meta lean">{leanLine(displayName(state.leading))}</p>}
       <p className="kicker">{COPY.questionKicker}</p>
       <h2 className="h-q">{state.question.text}</h2>
+      {ev && <p className="meta evidence-line">{evidenceLine(state.domain, ev)}</p>}
       {k !== null && <p className="meta keeps">{yesKeeps(k, total)}</p>}
       <p className="meta mechanism">{MECHANISM}</p>
       {state.pendingAnswer ? (
@@ -171,11 +182,11 @@ function Changed({ response }) {
         <div className="two-col">
           <div className="col-a">
             <p className="kicker">{COPY.withoutAsking}</p>
-            <p>{wa.name}</p>
+            <p>{displayName(wa)}</p>
           </div>
           <div className="col-rule col-b">
             <p className="kicker">{COPY.withAnswer}</p>
-            <p>{first.name}</p>
+            <p>{displayName(first)}</p>
           </div>
         </div>
       )}
@@ -193,6 +204,8 @@ export function Outcome({ state, domain, onReveal }) {
     );
   }
   const top = response && response.ranking[0];
+  const real = ((state.context && state.context.options) || []).find((o) => o.index === reveal.answer_index);
+  const realName = real ? displayName(real) : reveal.name;
   const matched = Boolean(top) && top.index === reveal.answer_index;
   const q = state.question;
   const yes = q && Array.isArray(q.yes_idx) ? q.yes_idx.includes(reveal.answer_index) : null;
@@ -202,11 +215,11 @@ export function Outcome({ state, domain, onReveal }) {
       <div className="two-col outcome-compare">
         <div className="col-a">
           <p className="kicker">{PICKED_LABEL}</p>
-          <p className="outcome-name">{top ? top.name : ''}</p>
+          <p className="outcome-name">{top ? displayName(top) : ''}</p>
         </div>
         <div className="col-rule col-b">
           <p className="kicker">{REAL_LABEL}</p>
-          <p className="outcome-name">{reveal.name}</p>
+          <p className="outcome-name">{realName}</p>
         </div>
       </div>
       <p className={matched ? 'meta outcome-verdict matched' : 'meta outcome-verdict'}>{matched ? PICK_MATCHED : PICK_MISSED}</p>
@@ -216,16 +229,19 @@ export function Outcome({ state, domain, onReveal }) {
   );
 }
 
-function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer, onReveal }) {
+export function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer, onReveal }) {
   const { response, choice } = state;
   const option = currentOption(choice);
-  const conf = choice.current === 0 ? confidenceParts(response.confidence) : null;
+  const answered = response.answer === 'yes' || response.answer === 'no';
+  const later = choice.current !== 0;
+  const conf = later ? null : confidenceLine(response.confidence, answered);
+  const rateNote = conf || noRateLine({ later, answered, single: response.ranking.length === 1 });
   const big = domain === 'shopping' ? 'h-q' : 'h-pick';
   let main;
   if (choice.accepted && option) {
     main = (
       <div className="pick-block" key="accepted">
-        <h2 className={big}>{accepted(option.name)}</h2>
+        <h2 className={big}>{accepted(displayName(option))}</h2>
         <Outcome state={state} domain={domain} onReveal={onReveal} />
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onNext}>{COPY.nextDecision}</button>
@@ -235,9 +251,13 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
   } else if (isExhausted(choice)) {
     main = (
       <div className="pick-block" key="exhausted">
-        <h2 className={big}>{allRejected(total)}</h2>
+        <h2 className={big}>{allRejected(total, response.ranking.length)}</h2>
+        {answered && response.ruled_out.length > 0 && <p className="meta all-rejected">{answerLeftNone(response.answer, response.ruled_out.length)}</p>}
         <Outcome state={state} domain={domain} onReveal={onReveal} />
         <div className="actions">
+          {answered && response.ruled_out.length > 0 && (
+            <button type="button" className="secondary-btn" onClick={onChangeAnswer}>{COPY.changeYourAnswer}</button>
+          )}
           <button type="button" className="primary-btn" onClick={onNext}>{COPY.nextDecision}</button>
         </div>
       </div>
@@ -245,17 +265,16 @@ function Pick({ state, domain, total, onChoose, onReject, onNext, onChangeAnswer
   } else {
     main = (
       <div className="pick-block" key={`pick-${option.index}`}>
-        <p className="kicker">{COPY.pickKicker}</p>
-        <h2 className={big}>{option.name}<RealMark revealed={state.reveal} option={option} /></h2>
+        <p className="kicker">{choice.byUser ? COPY.yourChoiceKicker : later ? COPY.nextPickKicker : COPY.pickKicker}</p>
+        <h2 className={big}>{displayName(option)}<RealMark revealed={state.reveal} option={option} /></h2>
         {showCategory(option) && <p className="category">{option.category}</p>}
-        {option.reason && (
+        {option.reason && !isPrivate(option) && (
           <div className="why">
             <p className="kicker">{COPY.whyHeading}</p>
             <p>{option.reason}</p>
           </div>
         )}
-        {conf && <p className="meta confidence"><strong>{conf.label}</strong>{conf.rest}</p>}
-        {choice.current !== 0 && <p className="meta confidence">{LATER_PICK_NOTE}</p>}
+        <p className="meta confidence">{rateNote}</p>
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onChoose}>{dc(domain).choose}</button>
           <button type="button" className="text-btn" onClick={onReject}>{COPY.notForMe}</button>
@@ -295,7 +314,7 @@ export default function Flow(props) {
   const nDecisions = (state.context && state.context.n_decisions)
     || (config && (config.people.find((p) => p.id === state.person) || {}).decisions) || null;
 
-  const key = `${state.phase}|${state.decision}|${state.answer}|${state.pendingAnswer}|${state.choice && state.choice.accepted}|${isExhausted(state.choice)}`;
+  const key = `${state.phase}|${state.decision}|${state.answer}|${state.pendingAnswer}|${state.choice && state.choice.accepted}|${isExhausted(state.choice)}|${state.choice && state.choice.current}|${Boolean(state.reveal)}`;
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -304,9 +323,13 @@ export default function Flow(props) {
     }
     const root = region.current;
     const h = root && (root.querySelector('.action h2') || root.querySelector('h1'));
-    if (h && state.started) {
+    // Focus follows the change, so a keyboard or screen reader user is not left on a control that was removed. Before a
+    // decision is started (after "Next decision") it moves to the page heading, and only when focus was lost.
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (h && (state.started || lost)) {
       h.setAttribute('tabindex', '-1');
       h.focus({ preventScroll: true });
+      if (!state.started) return;
       // keep the question or pick in view on short screens, where it sits below the five options
       const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const action = root.querySelector('.action');
@@ -322,7 +345,7 @@ export default function Flow(props) {
   } else if (state.phase === 'pick' && state.response && state.choice) {
     body = <Pick {...props} domain={domain} total={total} />;
   } else {
-    body = <Idle {...props} ready={state.contextStatus === 'ready'} busy={Boolean(state.busy)} />;
+    body = <Idle {...props} ready={state.contextStatus === 'ready'} busy={Boolean(state.busy)} setting={state.setting} />;
   }
 
   return (

@@ -48,6 +48,7 @@ export default function MapView({ history, rows, outline, bounds, kind = null, f
 
   return (
     <figure className="map">
+      <h3 className="kicker map-heading">{COPY.mapHeading}</h3>
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         role="img"

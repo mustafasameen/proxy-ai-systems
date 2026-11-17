@@ -1,9 +1,10 @@
 // The choice among one decision's ranked options. Pure functions over a plain object:
-// { ranking, current, rejected, accepted } where current is a position in ranking, or null when all are rejected.
+// { ranking, current, rejected, accepted, byUser } (byUser: the user clicked a row other than PROXY's first pick, so the pick is theirs)
+// where current is a position in ranking, or null when all are rejected.
 
 export function initChoice(ranking) {
   const list = Array.isArray(ranking) ? ranking : [];
-  return { ranking: list, current: list.length ? 0 : null, rejected: [], accepted: false };
+  return { ranking: list, current: list.length ? 0 : null, rejected: [], accepted: false, byUser: false };
 }
 
 export function currentOption(choice) {
@@ -25,14 +26,14 @@ export function rejectCurrent(choice) {
       break;
     }
   }
-  return { ...choice, rejected, current: next };
+  return { ...choice, rejected, current: next, byUser: false };
 }
 
 // A row in "See all options" makes that option the pick.
 export function selectOption(choice, position) {
   if (choice.accepted) return choice;
   if (position < 0 || position >= choice.ranking.length || choice.rejected.includes(position)) return choice;
-  return { ...choice, current: position };
+  return { ...choice, current: position, byUser: position !== 0 };
 }
 
 export function accept(choice) {

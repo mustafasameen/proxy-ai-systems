@@ -11,7 +11,7 @@ MISSING_LOGPROB = -30.0
 
 
 class GatewayError(Exception):
-    """The model gateway failed. kind is 'timeout', 'busy' or 'unavailable'."""
+    """The model gateway failed. kind is 'timeout', 'busy', 'auth' (the gateway refused the key) or 'unavailable'."""
 
     def __init__(self, kind, detail=""):
         super().__init__(f"{kind}: {detail}")
@@ -76,7 +76,8 @@ def score_options(prompt, *, base_url, api_key, model, timeout_s):
         with urllib.request.urlopen(req, timeout=timeout_s) as r:
             d = json.load(r)
     except urllib.error.HTTPError as e:
-        raise GatewayError("busy" if e.code == 429 else "unavailable", f"HTTP {e.code}") from None
+        kind = "busy" if e.code == 429 else "auth" if e.code in (401, 403) else "unavailable"
+        raise GatewayError(kind, f"HTTP {e.code}") from None
     except (TimeoutError, OSError) as e:
         kind = "timeout" if "timed out" in str(e).lower() else "unavailable"
         raise GatewayError(kind, type(e).__name__) from None
@@ -197,21 +198,27 @@ def article(noun):
     return "an" if noun[:1].lower() in "aeiou" else "a"
 
 
+# Generic kinds that read as a mass noun: "health care", not "a health care".
+UNCOUNTABLE = {"health care", "general entertainment", "arts & entertainment"}
+
+
+def with_article(noun):
+    return noun if noun.lower() in UNCOUNTABLE else f"{article(noun)} {noun}"
+
+
 def reason_line(candidate, history):
     """One true sentence from the record: how often this kind of place appears in the person's history."""
     cat = candidate.get("category")
     if not cat:
         return None
     n = sum(1 for h in history if h.get("category") == cat)
-    noun = common_noun(cat)
-    art = article(noun)
+    noun = with_article(common_noun(cat))
     if n == 0:
-        return f"A new kind of place for you: none of your last {len(history)} places was {art} {noun}."
+        return f"A new kind of place for you: none of your last {len(history)} places was {noun}."
     if n == 1:
-        return f"You went to {art} {noun} once in your last {len(history)} places."
-    return f"You went to {art} {noun} {n} times in your last {len(history)} places."
+        return f"You went to {noun} once in your last {len(history)} places."
+    return f"You went to {noun} {n} times in your last {len(history)} places."
 
 
 def question_text(category):
-    noun = common_noun(category)
-    return f"Are you up for {article(noun)} {noun}?"
+    return f"Are you up for {with_article(common_noun(category))}?"

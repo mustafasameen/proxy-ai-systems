@@ -13,3 +13,4 @@ __pycache__/
 !api/model_card_places.json
 !api/model_card_shopping.json
 !app/public/data/*.json
+ops/evidence/

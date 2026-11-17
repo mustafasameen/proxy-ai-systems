@@ -48,6 +48,7 @@ export default function SettingsSheet({ domain, config, setting, devView, onSett
           <>
             <fieldset className="radio-list">
               <legend className="visually-hidden">{COPY.settingsTitle}</legend>
+              <p className="radio-head meta" aria-hidden="true">{COPY.matchRate}</p>
               {config.settings.map((s) => (
                 <label key={s.label} className="radio-row">
                   <input type="radio" name="setting" value={s.label} checked={setting === s.label} onChange={() => onSetting(s.label)} />
@@ -55,11 +56,12 @@ export default function SettingsSheet({ domain, config, setting, devView, onSett
                     <span className="radio-label">{s.label}</span>
                     <span className="meta">{askRateText(s.ask_rate)}</span>
                   </span>
-                  <span className="radio-rate num">{pct(s.accuracy)}</span>
+                  <span className="radio-rate num">{pct(s.accuracy)}<span className="visually-hidden"> {COPY.matchRate.toLowerCase()}</span></span>
                 </label>
               ))}
             </fieldset>
             {ev && <p className="note">{settingsNote(ev.report_rows, ev.report_users, domain)}</p>}
+            <p className="note restart">{COPY.settingsRestart}</p>
           </>
         ) : (
           <p className="note">{COPY.configFail}</p>
