@@ -26,7 +26,7 @@ function useWide() {
   return wide;
 }
 
-export default function App() {
+export default function App({ onStories } = {}) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [config, setConfig] = useState(null);
   const [configFailed, setConfigFailed] = useState(false);
@@ -172,6 +172,7 @@ export default function App() {
         onSettings={() => dispatch({ type: 'OPEN_SETTINGS' })}
         settingsButtonRef={settingsButton}
         onHome={() => { stop(); dispatch({ type: 'SET_VIEW', view: 'main' }); }}
+        onStories={onStories}
       />
       {state.view === 'about' ? (
         <main className="column">

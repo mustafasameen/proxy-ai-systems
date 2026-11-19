@@ -1,0 +1,731 @@
+{
+ "about": "Guided replays of saved decisions. Scores are the fine-tuned Llama 3.1 8B's saved scores; no model is called. The person's answer to the question is simulated from what they really chose.",
+ "evaluation": {
+  "places": {
+   "rows": 2502,
+   "people": 300,
+   "chance": 0.2,
+   "policies": {
+    "Never ask": 0.5024,
+    "When unsure": 0.6571,
+    "Always ask": 0.735
+   },
+   "ask_rate": {
+    "Never ask": 0.0,
+    "When unsure": 0.5,
+    "Always ask": 1.0
+   }
+  },
+  "shopping": {
+   "policies": {
+    "Never ask": 0.6278,
+    "When unsure": 0.7564,
+    "Always ask": 0.8083
+   },
+   "ask_rate": {
+    "Never ask": 0.0,
+    "When unsure": 0.4658,
+    "Always ask": 1.0
+   }
+  }
+ },
+ "policies": [
+  "Never ask",
+  "When unsure",
+  "Always ask"
+ ],
+ "stories": [
+  {
+   "id": "question-helps",
+   "domain": "places",
+   "person": "Person 1",
+   "decision": "1-9",
+   "tab": "Question helps",
+   "title": "One question changes the pick",
+   "pitch": "A ferry rider who likes parks and theaters. PROXY is torn between a park and a bar, so it asks.",
+   "history_total": 30,
+   "history_kinds": [
+    {
+     "category": "Boat or Ferry",
+     "count": 2
+    },
+    {
+     "category": "Park",
+     "count": 2
+    },
+    {
+     "category": "Theater",
+     "count": 2
+    },
+    {
+     "category": "American Restaurant",
+     "count": 1
+    }
+   ],
+   "recent": [
+    {
+     "name": "Momofuku Ssäm Bar",
+     "category": "Asian Restaurant"
+    },
+    {
+     "name": "wd~50",
+     "category": "Molecular Gastronomy Restaurant"
+    },
+    {
+     "name": "Popeyes Louisiana Kitchen",
+     "category": "Fried Chicken Joint"
+    },
+    {
+     "name": "Serafina Always",
+     "category": "Italian Restaurant"
+    },
+    {
+     "name": "College",
+     "category": "College"
+    },
+    {
+     "name": "Capitale",
+     "category": "Event Space"
+    }
+   ],
+   "options": [
+    {
+     "name": "Artichoke Basille's Pizza",
+     "category": "Pizza Place",
+     "prob": 0.1582,
+     "reason": "A new kind of place for them: none of their last 30 places was a pizza place."
+    },
+    {
+     "name": "Battery Park Gardens",
+     "category": "Park",
+     "prob": 0.3873,
+     "reason": "They went to a park 2 times in their last 30 places."
+    },
+    {
+     "name": "Spitzer's Corner",
+     "category": "Bar",
+     "prob": 0.2684,
+     "reason": "A new kind of place for them: none of their last 30 places was a bar."
+    },
+    {
+     "name": "Dugout",
+     "category": "Bar",
+     "prob": 0.059,
+     "reason": "A new kind of place for them: none of their last 30 places was a bar."
+    },
+    {
+     "name": "Times Square",
+     "category": "Plaza",
+     "prob": 0.1271,
+     "reason": "A new kind of place for them: none of their last 30 places was a plaza."
+    }
+   ],
+   "truth": 2,
+   "policies": {
+    "Never ask": {
+     "lean": 1,
+     "gain": 0.26839999999999997,
+     "tau": null,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.1582,
+      0.3873,
+      0.2684,
+      0.059,
+      0.1271
+     ],
+     "pick": 1,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 3,
+      "n": 593,
+      "label": "Lower confidence"
+     },
+     "correct": false
+    },
+    "When unsure": {
+     "lean": 1,
+     "gain": 0.26839999999999997,
+     "tau": 0.22333669469590695,
+     "ask_all": false,
+     "asked": true,
+     "question": {
+      "text": "Are you up for a bar?",
+      "category": "Bar",
+      "yes_idx": [
+       2,
+       3
+      ]
+     },
+     "answer": "yes",
+     "after": [
+      0.0,
+      0.0,
+      0.8197923029932804,
+      0.1802076970067196,
+      0.0
+     ],
+     "pick": 2,
+     "left": 2,
+     "ruled_out": [
+      0,
+      1,
+      4
+     ],
+     "track": null,
+     "correct": true
+    },
+    "Always ask": {
+     "lean": 1,
+     "gain": 0.26839999999999997,
+     "tau": null,
+     "ask_all": true,
+     "asked": true,
+     "question": {
+      "text": "Are you up for a bar?",
+      "category": "Bar",
+      "yes_idx": [
+       2,
+       3
+      ]
+     },
+     "answer": "yes",
+     "after": [
+      0.0,
+      0.0,
+      0.8197923029932804,
+      0.1802076970067196,
+      0.0
+     ],
+     "pick": 2,
+     "left": 2,
+     "ruled_out": [
+      0,
+      1,
+      4
+     ],
+     "track": null,
+     "correct": true
+    }
+   }
+  },
+  {
+   "id": "no-question",
+   "domain": "places",
+   "person": "Person 2",
+   "decision": "2-4",
+   "tab": "No question",
+   "title": "Sure enough not to ask",
+   "pitch": "A regular at neighbourhood bars. PROXY is fairly sure, so it picks without bothering them.",
+   "history_total": 22,
+   "history_kinds": [
+    {
+     "category": "Bar",
+     "count": 5
+    },
+    {
+     "category": "Cocktail Bar",
+     "count": 2
+    },
+    {
+     "category": "Park",
+     "count": 2
+    },
+    {
+     "category": "Baseball Field",
+     "count": 1
+    }
+   ],
+   "recent": [
+    {
+     "name": "Kellogg's Diner",
+     "category": "Diner"
+    },
+    {
+     "name": "The Gibson",
+     "category": "Bar"
+    },
+    {
+     "name": "Brooklyn Public House",
+     "category": "Cocktail Bar"
+    },
+    {
+     "name": "The Sparrow Tavern",
+     "category": "Bar"
+    },
+    {
+     "name": "Pulaski Bridge",
+     "category": "Bridge"
+    },
+    {
+     "name": "East River Park BBQ Area",
+     "category": "Park"
+    }
+   ],
+   "options": [
+    {
+     "name": "The Sixth Ward",
+     "category": "Pub",
+     "prob": 0.6777,
+     "reason": "They went to a pub once in their last 22 places."
+    },
+    {
+     "name": "Amy Ruth's",
+     "category": "Southern / Soul Food Restaurant",
+     "prob": 0.064,
+     "reason": "A new kind of place for them: none of their last 22 places was a Southern / soul food restaurant."
+    },
+    {
+     "name": "Peanut Butter & Co.",
+     "category": "Sandwich Place",
+     "prob": 0.0533,
+     "reason": "A new kind of place for them: none of their last 22 places was a sandwich place."
+    },
+    {
+     "name": "DigitasLBi",
+     "category": "Office",
+     "prob": 0.0516,
+     "reason": "A new kind of place for them: none of their last 22 places was an office."
+    },
+    {
+     "name": "Westside Tavern",
+     "category": "Bar",
+     "prob": 0.1534,
+     "reason": "They went to a bar 5 times in their last 22 places."
+    }
+   ],
+   "truth": 0,
+   "policies": {
+    "Never ask": {
+     "lean": 0,
+     "gain": 0.15339999999999998,
+     "tau": null,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.6777,
+      0.064,
+      0.0533,
+      0.0516,
+      0.1534
+     ],
+     "pick": 0,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 6,
+      "n": 347,
+      "label": "Higher confidence"
+     },
+     "correct": true
+    },
+    "When unsure": {
+     "lean": 0,
+     "gain": 0.15339999999999998,
+     "tau": 0.22333669469590695,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.6777,
+      0.064,
+      0.0533,
+      0.0516,
+      0.1534
+     ],
+     "pick": 0,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 6,
+      "n": 347,
+      "label": "Higher confidence"
+     },
+     "correct": true
+    },
+    "Always ask": {
+     "lean": 0,
+     "gain": 0.15339999999999998,
+     "tau": null,
+     "ask_all": true,
+     "asked": true,
+     "question": {
+      "text": "Are you up for a bar?",
+      "category": "Bar",
+      "yes_idx": [
+       4
+      ]
+     },
+     "answer": "no",
+     "after": [
+      0.8004961020552799,
+      0.07559650366170564,
+      0.06295771320576424,
+      0.06094968107725018,
+      0.0
+     ],
+     "pick": 0,
+     "left": 4,
+     "ruled_out": [
+      4
+     ],
+     "track": null,
+     "correct": true
+    }
+   }
+  },
+  {
+   "id": "honest-miss",
+   "domain": "places",
+   "person": "Person 7",
+   "decision": "7-7",
+   "tab": "Honest miss",
+   "title": "Confident, and still wrong",
+   "pitch": "A coffee-shop and gym regular. PROXY is sure enough not to ask, and picks wrong.",
+   "history_total": 30,
+   "history_kinds": [
+    {
+     "category": "Coffee Shop",
+     "count": 7
+    },
+    {
+     "category": "Gym",
+     "count": 5
+    },
+    {
+     "category": "Art Gallery",
+     "count": 4
+    },
+    {
+     "category": "Salad Place",
+     "count": 3
+    }
+   ],
+   "recent": [
+    {
+     "name": "Target",
+     "category": "Big Box Store"
+    },
+    {
+     "name": "Starbucks",
+     "category": "Coffee Shop"
+    },
+    {
+     "name": "Starbucks",
+     "category": "Coffee Shop"
+    },
+    {
+     "name": "Empire Cake",
+     "category": "Bakery"
+    },
+    {
+     "name": "Au Bon Pain",
+     "category": "Sandwich Place"
+    },
+    {
+     "name": "Gallery House",
+     "category": "Art Gallery"
+    }
+   ],
+   "options": [
+    {
+     "name": "Intermezzo",
+     "category": "Italian Restaurant",
+     "prob": 0.1094,
+     "reason": "A new kind of place for them: none of their last 30 places was an Italian restaurant."
+    },
+    {
+     "name": "24 Central Park South",
+     "category": "Building",
+     "prob": 0.0623,
+     "reason": "A new kind of place for them: none of their last 30 places was a building."
+    },
+    {
+     "name": "Petco",
+     "category": "Pet Store",
+     "prob": 0.7443,
+     "reason": "A new kind of place for them: none of their last 30 places was a pet store."
+    },
+    {
+     "name": "Pratt Manhattan",
+     "category": "College Arts Building",
+     "prob": 0.0443,
+     "reason": "A new kind of place for them: none of their last 30 places was a college arts building."
+    },
+    {
+     "name": "Silver Spurs",
+     "category": "Restaurant",
+     "prob": 0.0398,
+     "reason": "A new kind of place for them: none of their last 30 places was a restaurant."
+    }
+   ],
+   "truth": 4,
+   "policies": {
+    "Never ask": {
+     "lean": 2,
+     "gain": 0.10939999999999994,
+     "tau": null,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.1094,
+      0.0623,
+      0.7443,
+      0.0443,
+      0.0398
+     ],
+     "pick": 2,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 7,
+      "n": 300,
+      "label": "Higher confidence"
+     },
+     "correct": false
+    },
+    "When unsure": {
+     "lean": 2,
+     "gain": 0.10939999999999994,
+     "tau": 0.22333669469590695,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.1094,
+      0.0623,
+      0.7443,
+      0.0443,
+      0.0398
+     ],
+     "pick": 2,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 7,
+      "n": 300,
+      "label": "Higher confidence"
+     },
+     "correct": false
+    },
+    "Always ask": {
+     "lean": 2,
+     "gain": 0.10939999999999994,
+     "tau": null,
+     "ask_all": true,
+     "asked": true,
+     "question": {
+      "text": "Are you up for an Italian restaurant?",
+      "category": "Italian Restaurant",
+      "yes_idx": [
+       0
+      ]
+     },
+     "answer": "no",
+     "after": [
+      0.0,
+      0.06994498708880656,
+      0.8356348939036713,
+      0.04973616256876614,
+      0.04468395643875604
+     ],
+     "pick": 2,
+     "left": 4,
+     "ruled_out": [
+      0
+     ],
+     "track": null,
+     "correct": false
+    }
+   }
+  },
+  {
+   "id": "shopping",
+   "domain": "shopping",
+   "person": "Person 12",
+   "decision": "s12-4",
+   "tab": "Shopping",
+   "title": "Two gaming mice, one brand question",
+   "pitch": "A gamer who buys headsets and keyboards. PROXY asks about the brand before choosing a mouse.",
+   "history_total": 8,
+   "history_kinds": [
+    {
+     "category": "Razer",
+     "count": 3
+    },
+    {
+     "category": "Acer",
+     "count": 1
+    },
+    {
+     "category": "Logitech G",
+     "count": 1
+    },
+    {
+     "category": "Sony",
+     "count": 1
+    }
+   ],
+   "recent": [
+    {
+     "name": "Razer DeathStalker V2 Pro TKL…",
+     "category": "Razer"
+    },
+    {
+     "name": "Sony-INZONE H3 Wired Gaming…",
+     "category": "Sony"
+    },
+    {
+     "name": "Acer Predator Aethon 700 Gaming…",
+     "category": "acer"
+    },
+    {
+     "name": "Razer Kaira Pro Dual Wireless…",
+     "category": "Razer"
+    },
+    {
+     "name": "Turtle Beach Recon 200 Gen 2…",
+     "category": "Turtle Beach"
+    },
+    {
+     "name": "Razer Barracuda X Wireless…",
+     "category": "Razer"
+    }
+   ],
+   "options": [
+    {
+     "name": "2 Pack 2.4GHz Wireless Controller…",
+     "category": "KIWITATA",
+     "prob": 0.02323,
+     "reason": "They recently bought 3 items mentioning Wireless."
+    },
+    {
+     "name": "Logitech G502 X PLUS LIGHTSPEED…",
+     "category": "Logitech G",
+     "prob": 0.413087,
+     "reason": "One of their recent purchases is from Logitech G."
+    },
+    {
+     "name": "IFYOO PC Steam Game Controller",
+     "category": "IFYOO",
+     "prob": 0.025774,
+     "reason": "They recently bought 3 items mentioning PRO."
+    },
+    {
+     "name": "SteelSeries Aerox 5 Wireless",
+     "category": "SteelSeries",
+     "prob": 0.523067,
+     "reason": "They recently bought 3 items mentioning Wireless."
+    },
+    {
+     "name": "Nintendo Amiibo Animal Crossing…",
+     "category": "Nintendo",
+     "prob": 0.014842,
+     "reason": "They recently bought 1 item mentioning Nintendo."
+    }
+   ],
+   "truth": 1,
+   "policies": {
+    "Never ask": {
+     "lean": 3,
+     "gain": 0.413087,
+     "tau": null,
+     "ask_all": false,
+     "asked": false,
+     "question": null,
+     "answer": null,
+     "after": [
+      0.02323,
+      0.413087,
+      0.025774,
+      0.523067,
+      0.014842
+     ],
+     "pick": 3,
+     "left": 5,
+     "ruled_out": [],
+     "track": {
+      "out_of_10": 6,
+      "n": 565,
+      "label": "Moderate confidence"
+     },
+     "correct": false
+    },
+    "When unsure": {
+     "lean": 3,
+     "gain": 0.413087,
+     "tau": 0.19265451879083717,
+     "ask_all": false,
+     "asked": true,
+     "question": {
+      "text": "Do you want something from Logitech G?",
+      "category": "Logitech G",
+      "yes_idx": [
+       1
+      ]
+     },
+     "answer": "yes",
+     "after": [
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "pick": 1,
+     "left": 1,
+     "ruled_out": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "track": null,
+     "correct": true
+    },
+    "Always ask": {
+     "lean": 3,
+     "gain": 0.413087,
+     "tau": null,
+     "ask_all": true,
+     "asked": true,
+     "question": {
+      "text": "Do you want something from Logitech G?",
+      "category": "Logitech G",
+      "yes_idx": [
+       1
+      ]
+     },
+     "answer": "yes",
+     "after": [
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "pick": 1,
+     "left": 1,
+     "ruled_out": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "track": null,
+     "correct": true
+    }
+   }
+  }
+ ]
+}
