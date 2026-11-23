@@ -42,7 +42,10 @@ TIMEOUT_S = float(os.environ.get("PROXY_TIMEOUT_S", "12"))
 ORIGINS = [o for o in os.environ.get("PROXY_ALLOWED_ORIGINS", "http://localhost:5174,http://127.0.0.1:5174").split(",") if o]
 RATE_PER_MIN = int(os.environ.get("PROXY_RATE_PER_MIN", "30"))
 MAX_BODY = 2048
-LIMITED = {"/api/pick", "/api/reveal"}   # rate-limited; /api/context makes no model call
+LIMITED = {"/api/pick", "/api/reveal", "/api/feedback"}   # rate-limited; /api/context makes no model call
+# Feedback from the interface: one JSON line per submission, no names; the file is ignored by git (*.jsonl).
+FEEDBACK_FILE = os.environ.get("PROXY_FEEDBACK_FILE", os.path.join(HERE, "feedback.jsonl"))
+NOTE_MAX = 280
 
 log = logging.getLogger("proxy")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -52,6 +55,7 @@ LAT = Histogram("proxy_request_seconds", "End-to-end API latency", ["endpoint"],
 MODEL_LAT = Histogram("proxy_model_seconds", "Gateway call latency", buckets=(0.1, 0.25, 0.5, 1, 2, 4, 8, 16))
 GW_ERR = Counter("proxy_gateway_errors_total", "Gateway failures", ["kind"])
 ASKED = Counter("proxy_questions_total", "Decisions where PROXY asked", ["setting"])
+FEEDBACK = Counter("proxy_feedback_total", "Feedback submitted from the interface", ["where", "rating"])
 
 # Places calls the hosted model live for each new decision. Shopping replays the fine-tuned model's saved scores, so it
 # makes no model call.
@@ -138,6 +142,13 @@ class RevealIn(BaseModel):
     domain: Domain = "places"
     person: str = Field(min_length=1, max_length=4, pattern=r"^[0-9]+$")
     decision: int = Field(ge=0, le=999)
+
+
+class FeedbackIn(BaseModel):
+    where: Literal["story", "workspace"]
+    item: Optional[str] = Field(default=None, max_length=40, pattern=r"^[a-z0-9-]+$")
+    rating: Literal["clear", "unclear"]
+    note: Optional[str] = Field(default=None, max_length=NOTE_MAX)
 
 
 def get_decision(domain, person, idx):
@@ -305,6 +316,19 @@ def reveal(body: RevealIn):
     """The option the person actually chose, shown after a choice is made and in the developer view."""
     d = get_decision(body.domain, body.person, body.decision)
     return {"answer_index": d["answer_idx"], "name": option(body.domain, d, d["answer_idx"])["name"]}
+
+
+@app.post("/api/feedback")
+def feedback(body: FeedbackIn, request: Request):
+    """Stores one rating, with an optional short note, from the interface. The note is never logged, never shown to
+    the model and never returned; the request log keeps only the id, path, status and time."""
+    note = " ".join((body.note or "").split())[:NOTE_MAX] or None
+    row = {"time": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "rid": request.state.rid, "where": body.where,
+           "item": body.item, "rating": body.rating, "note": note}
+    with open(FEEDBACK_FILE, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row) + "\n")
+    FEEDBACK.labels(body.where, body.rating).inc()
+    return {"ok": True, "request_id": request.state.rid}
 
 
 @app.get("/metrics")

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PHASES, buildBeats, beatMs, nouns, pct } from './beats.js';
 import { Person, ProxyFace } from './Avatars.jsx';
+import FeedbackBox from '../components/FeedbackBox.jsx';
 import './story.css';
 
 const LETTERS = 'ABCDE';
@@ -277,6 +278,7 @@ function Player({ data, story }) {
                 {policy === 'When unsure' ? 'Try "Never ask" or "Always ask" above to replay this same decision. ' : ''}
                 <a href="#/">More stories</a>
               </p>
+              <FeedbackBox key={`${story.id}-${policy}`} where="story" item={story.id} question="Was this replay easy to follow?" />
             </div>
           ) : null}
         </section>

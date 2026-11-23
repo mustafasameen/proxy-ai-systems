@@ -8,6 +8,7 @@ import Context from './components/Context.jsx';
 import SettingsSheet from './components/SettingsSheet.jsx';
 import About from './components/About.jsx';
 import { COPY, contextSummaryTitle } from './lib/copy.js';
+import FeedbackBox from './components/FeedbackBox.jsx';
 
 const SLOW_MS = 4000;
 const WIDE = '(min-width: 960px)';
@@ -207,6 +208,7 @@ export default function App({ onStories } = {}) {
               {context}
             </details>
           ))}
+          <FeedbackBox key={domain} where="workspace" item={domain} question="Was PROXY easy to use?" className="workspace-fb" />
           {configFailed && !config && (
             <div className="error config-error" role="alert">
               <p>{COPY.configFail}</p>

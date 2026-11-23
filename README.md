@@ -69,6 +69,14 @@ python3 -m uvicorn app:app --port 8787
 cd ../app && npm install && npm run dev    # then open http://localhost:5174
 ```
 
+The front page shows four guided replays of saved decisions: a question that helps, no question, an honest miss, and a
+shopping pick. They need no key. The full workspace above is at `http://localhost:5174/#/workspace`. Without a key the
+replays and Shopping work, and Places says that PROXY is not set up.
+
+Each replay and the workspace end with a short feedback box: "Was this easy to follow?", Yes or Not really, and an optional
+note of up to 280 characters. The API stores each submission as one JSON line in `api/feedback.jsonl` (ignored by git), with
+no name, and counts it in `/metrics` as `proxy_feedback_total`. The note is never logged and never sent to the model.
+
 | | |
 |---|---|
 | ![Before PROXY chooses](docs/screenshots/01_workspace.png) | ![Question](docs/screenshots/02_question.png) |

@@ -299,3 +299,40 @@ def test_question_and_reason_wording_for_generic_kinds():
     assert core.question_text("Cocktail Bar") == "Are you up for a cocktail bar?"
     assert core.question_text("Italian Restaurant") == "Are you up for an Italian restaurant?"
     assert core.reason_line({"category": "Health care"}, []) == "A new kind of place for you: none of your last 0 places was health care."
+
+
+# ---- feedback from the interface -------------------------------------------------------------------------------------
+
+def test_feedback_is_stored_and_counted(tmp_path, monkeypatch):
+    f = tmp_path / "fb.jsonl"
+    monkeypatch.setattr(api, "FEEDBACK_FILE", str(f))
+    r = client.post("/api/feedback", json={"where": "story", "item": "honest-miss", "rating": "unclear",
+                                           "note": "  Why was the\nreal choice   ruled out? "})
+    assert r.status_code == 200 and r.json()["ok"] is True
+    rows = [json.loads(x) for x in f.read_text().splitlines()]
+    assert len(rows) == 1
+    assert rows[0]["where"] == "story" and rows[0]["item"] == "honest-miss" and rows[0]["rating"] == "unclear"
+    assert rows[0]["note"] == "Why was the real choice ruled out?"
+    assert 'proxy_feedback_total{rating="unclear",where="story"}' in client.get("/metrics").text
+
+
+@pytest.mark.parametrize("body", [
+    {"where": "story", "rating": "great"},
+    {"where": "elsewhere", "rating": "clear"},
+    {"where": "story", "rating": "clear", "item": "Not An Id"},
+    {"where": "story", "rating": "clear", "note": "x" * 281},
+    {"rating": "clear"},
+])
+def test_feedback_rejects_bad_input(body, tmp_path, monkeypatch):
+    f = tmp_path / "fb.jsonl"
+    monkeypatch.setattr(api, "FEEDBACK_FILE", str(f))
+    assert client.post("/api/feedback", json=body).status_code == 422
+    assert not f.exists()
+
+
+def test_feedback_note_never_reaches_the_log(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(api, "FEEDBACK_FILE", str(tmp_path / "fb.jsonl"))
+    with caplog.at_level("INFO", logger="proxy"):
+        client.post("/api/feedback", json={"where": "workspace", "item": "places", "rating": "clear", "note": "secret-note-text"})
+    assert "secret-note-text" not in caplog.text
+    assert "/api/feedback" in caplog.text
