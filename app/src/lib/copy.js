@@ -187,7 +187,7 @@ export const DOMAIN_COPY = {
     sub: 'PROXY is choosing from five products this person has never bought.',
     really: 'This person really bought',
     source: 'Shopping: a replay of saved scores, no live call.',
-    sourceDetail: 'Model: fine-tuned Llama-3.1-8B-Instruct, no model call.',
+    sourceDetail: 'Scores: fine-tuned Llama 3.1 8B, saved offline.',
     choose: 'Choose this item',
     recent: 'Recent purchases',
     unit: 'purchase',
