@@ -75,7 +75,9 @@ export function buildBeats(story, policyName) {
 
   const after = { ...shown, answered: p.asked };
   const track = p.track ? ` Picks at this confidence were right about ${p.track.out_of_10} in 10 times for people PROXY never saw.` : '';
-  add('pick', 'proxy', end(`I pick ${opt(p.pick)}`), `${story.options[p.pick].reason || ''}${track}`.trim(), { ...after, pick: true });
+  // The reason line is written from the history, not read out of the model, so it is labelled as what PROXY saw (P-730).
+  const seen = story.options[p.pick].reason ? `What PROXY saw in their history: ${end(story.options[p.pick].reason)}` : '';
+  add('pick', 'proxy', end(`I pick ${opt(p.pick)}`), `${seen}${track}`.trim(), { ...after, pick: true });
 
   let compare = null;
   if (p.asked && lean !== p.pick) {
