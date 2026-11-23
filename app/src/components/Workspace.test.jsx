@@ -137,11 +137,35 @@ describe('pilot fixes', () => {
       />,
     );
     const one = render([kept], [0, 2, 3, 4]);
-    expect(one).toContain('That was the only option left.');
+    expect(one).toContain('That was the only option your answer left.');
     expect(one).not.toContain('all five options');
     expect(one).toContain('Change your answer');
     const all = render([0, 1, 2, 3, 4].map((index) => ({ index, name: `N${index}` })), []);
     expect(all).toContain('That&#x27;s all five options.');
+  });
+
+  it('shows the accepted pick with a match line and puts Change answer right after the buttons', () => {
+    const noop = () => {};
+    const ranking = [0, 1].map((index) => ({ index, name: `N${index}`, category: 'Cafe', reason: 'You went to a cafe 2 times in your last 30 places.' }));
+    const render = (current, byUser, accepted) => renderToStaticMarkup(
+      <Pick
+        state={{ response: { answer: 'no', question: { text: 'Q' }, ranking, ruled_out: [], confidence: { label: 'Higher confidence', matched_out_of_10: 7 } }, question: { text: 'Q' }, answer: 'no', choice: { ranking, current, rejected: [], accepted, byUser }, reveal: null }}
+        domain="places" total={5} onChoose={noop} onReject={noop} onNext={noop} onChangeAnswer={noop} onReveal={noop}
+      />,
+    );
+    expect(render(0, false, true)).toContain('similar picks matched the real choice about 7 in 10 times');
+    expect(render(1, true, true)).toContain('There is no match rate for this option');
+    const open = render(0, false, false);
+    expect(open.indexOf('Not for me')).toBeLessThan(open.indexOf('Change answer'));
+    expect(open.indexOf('Choose this place')).toBeLessThan(open.indexOf('Change answer'));
+  });
+
+  it('shows a masked sensitive place by its kind', () => {
+    const o = { index: 0, name: 'Health care', category: 'Health care', point: null };
+    const html = renderToStaticMarkup(
+      <OptionsList rows={[{ option: o, letter: 'C', state: 'default' }]} phase="start" choice={null} reveal={null} onSelect={() => {}} />,
+    );
+    expect(html).toContain('A health care place (name hidden)');
   });
 
   it('heads the settings percentages "Match rate"', () => {

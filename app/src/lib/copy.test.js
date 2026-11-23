@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { summaryLine, yesKeeps } from './workspace.js';
 import {
-  allCopyStrings, askRateText, errorMessage, numberWord, confidenceLine, noRateLine, displayName, startHint, evidenceLine, allRejected, endOfDecisions, COPY, pct, workspaceTitle,
+  allCopyStrings, askRateText, errorMessage, numberWord, confidenceLine, noRateLine, displayName, startHint, evidenceLine, allRejected, endOfDecisions, COPY, pct, workspaceTitle, roleLine, tallyLine, DOMAIN_COPY,
 } from './copy.js';
 
 describe('copy rules', () => {
@@ -22,11 +22,21 @@ describe('copy rules', () => {
     expect(workspaceTitle('places', '2')).toBe('Where should Person 2 go next?');
     expect(workspaceTitle('shopping', '2')).toBe('What will Person 2 buy next?');
     expect(COPY.startButton).toBe('Let PROXY choose');
-    expect(COPY.notForYou).toBe("Not for you. Here's the next option.");
+    expect(COPY.notForYou).toBe('Not for you. Next is the highest-scored option left.');
+    expect(COPY.notForYouAnswer).toBe('Not for you. Next is the highest-scored option your answer allows.');
+    expect(roleLine('3')).toBe("You are playing Person 3. Answer as they would, from the history shown. Skip if it isn't enough.");
+    expect(tallyLine(0, 2)).toBe("This session: PROXY's first pick matched the real choice 0 of 2 times.");
+    expect(tallyLine(1, 1)).toBe("This session: PROXY's first pick matched the real choice 1 of 1 time.");
+    expect(DOMAIN_COPY.places.source).toBe('Places: PROXY scores the options live.');
+    expect(DOMAIN_COPY.shopping.source).toBe('Shopping: a replay of saved scores, no live call.');
+    expect(DOMAIN_COPY.places.sourceDetail).toContain('Llama 3.3 70B');
+    expect(displayName({ name: 'Health care', category: 'Health care' })).toBe('A health care place (name hidden)');
+    expect(displayName({ name: 'Arts & Entertainment', category: 'Arts & Entertainment' })).toBe('An arts & entertainment place (name hidden)');
+    expect(displayName({ name: 'Babbo', category: 'Health care' })).toBe('Babbo');
     expect(allRejected(5)).toBe("That's all five options.");
     expect(allRejected(5, 5)).toBe("That's all five options.");
-    expect(allRejected(5, 1)).toBe('That was the only option left.');
-    expect(allRejected(5, 3)).toBe("That's all three options left.");
+    expect(allRejected(5, 1)).toBe('That was the only option your answer left.');
+    expect(allRejected(5, 3)).toBe("That's every option your answer left.");
     expect(endOfDecisions('1')).toBe("That's all the decisions for Person 1.");
   });
 });
@@ -85,8 +95,8 @@ describe('number helpers', () => {
 
 describe('smaller pilot fixes', () => {
   it('evidence line has no article before a generic kind', () => {
-    expect(evidenceLine('places', { count: 0, total: 30, category: 'Health care' })).toBe('Of their last 30 places, 0 were health care.');
-    expect(evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' })).toBe('Of their last 30 places, 3 were a cocktail bar.');
+    expect(evidenceLine('places', { count: 0, total: 30, category: 'Health care' })).toBe('Of your last 30 places, 0 were health care.');
+    expect(evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' })).toBe('Of your last 30 places, 3 were a cocktail bar.');
   });
   it('the person menu is named Person', () => {
     expect(COPY.personSwitcherLabel).toBe('Person');

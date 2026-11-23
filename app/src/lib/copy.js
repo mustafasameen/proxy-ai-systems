@@ -46,8 +46,20 @@ export function noRateLine({ later, answered, single }) {
 // A masked home is stored as the name "Home" with the kind "private".
 export const PRIVATE_NAME = 'A private place (name hidden)';
 export const PRIVATE_WHY = 'The name is hidden. Private places are not shown on the map.';
+// A generic kind used as the name ("Health care") means the real name was masked. It is named by its kind instead.
+const HIDDEN_KINDS = new Set(['health care', 'general entertainment', 'arts & entertainment']);
+export const isGenericName = (o) => Boolean(o) && Boolean(o.category) && String(o.name).trim().toLowerCase() === String(o.category).trim().toLowerCase()
+  && HIDDEN_KINDS.has(String(o.category).trim().toLowerCase());
 export const isPrivate = (o) => Boolean(o) && String(o.name).trim().toLowerCase() === 'home' && String(o.category || '').trim().toLowerCase() === 'private';
-export const displayName = (o) => (isPrivate(o) ? PRIVATE_NAME : (o && o.name) || '');
+export function genericName(o) {
+  const kind = String(o.category).trim().toLowerCase();
+  return `${/^[aeiou]/.test(kind) ? 'An' : 'A'} ${kind} place (name hidden)`;
+}
+export const displayName = (o) => {
+  if (isPrivate(o)) return PRIVATE_NAME;
+  if (isGenericName(o)) return genericName(o);
+  return (o && o.name) || '';
+};
 
 export const ANSWER_LABELS = { yes: 'Yes', no: 'No', skip: 'Skip' };
 
@@ -111,10 +123,11 @@ export const COPY = {
   changeYourAnswer: 'Change your answer',
   matchRate: 'Match rate',
   settingsRestart: 'Changing the setting restarts the current decision.',
-  whyHeading: 'From their history',
+  whyHeading: 'From your history',
   notForMe: 'Not for me',
   nextDecision: 'Next decision',
-  notForYou: "Not for you. Here's the next option.",
+  notForYou: 'Not for you. Next is the highest-scored option left.',
+  notForYouAnswer: 'Not for you. Next is the highest-scored option your answer allows.',
   answerChangedTitle: 'What did your answer change?',
   withoutAsking: 'WITHOUT ASKING',
   withAnswer: 'WITH YOUR ANSWER',
@@ -153,7 +166,8 @@ export const DOMAIN_COPY = {
     kicker: 'PLACES · NEW YORK CITY',
     sub: 'PROXY is choosing from five places this person has never been to.',
     really: 'This person really went to',
-    source: 'Live: Llama 3.3 70B through UF NaviGator',
+    source: 'Places: PROXY scores the options live.',
+    sourceDetail: 'Model: Llama 3.3 70B through UF NaviGator.',
     choose: 'Choose this place',
     recent: 'Recent',
     unit: 'visit',
@@ -172,7 +186,8 @@ export const DOMAIN_COPY = {
     kicker: 'SHOPPING · VIDEO GAMES',
     sub: 'PROXY is choosing from five products this person has never bought.',
     really: 'This person really bought',
-    source: 'Replay: saved scores of the fine-tuned model. No model call.',
+    source: 'Shopping: a replay of saved scores, no live call.',
+    sourceDetail: 'Model: fine-tuned Llama-3.1-8B-Instruct, no model call.',
     choose: 'Choose this item',
     recent: 'Recent purchases',
     unit: 'purchase',
@@ -220,7 +235,8 @@ export function offVisits(n) {
   return n === 1 ? 'One more past visit is outside this view.' : `${n} more past visits are outside this view.`;
 }
 
-export const ROLE_LINE = "Answer as this person would, using their history. Skip if the evidence isn't enough.";
+export const ROLE_LINE = "You are playing this person. Answer as they would, from the history shown. Skip if it isn't enough.";
+export const roleLine = (person) => (person ? `You are playing Person ${person}. Answer as they would, from the history shown. Skip if it isn't enough.` : ROLE_LINE);
 export const MECHANISM = 'PROXY has already scored all five options. Your answer rules some out, and PROXY picks the highest scored option left.';
 export const PICKED_LABEL = "PROXY'S FIRST PICK";
 export const REAL_LABEL = 'REAL CHOICE';
@@ -240,16 +256,16 @@ export function evidenceLine(domain, ev) {
   const n = ev.count;
   if (domain === 'shopping') {
     const what = n === 1 ? '1 was' : `${n} were`;
-    return `Of their last ${ev.total} purchases, ${what} from ${ev.category}.`;
+    return `Of your last ${ev.total} purchases, ${what} from ${ev.category}.`;
   }
   const kind = ev.category.toLowerCase();
   const art = MASS_KINDS.has(kind) ? '' : ' a';
   const what = n === 1 ? `1 was${art}` : `${n} were${art}`;
-  return `Of their last ${ev.total} places, ${what} ${kind}.`;
+  return `Of your last ${ev.total} places, ${what} ${kind}.`;
 }
 
 export function tallyLine(matched, seen) {
-  return `This session: PROXY's first pick matched ${matched} of ${seen}.`;
+  return `This session: PROXY's first pick matched the real choice ${matched} of ${seen} ${seen === 1 ? 'time' : 'times'}.`;
 }
 
 export function leanLine(name) {
@@ -295,8 +311,8 @@ export function youSaid(answer) {
 // Heading once every option still in play has been turned down. `left` is how many options the answer kept.
 export function allRejected(total, left = total) {
   if (left >= total) return `That's all ${numberWord(total)} options.`;
-  if (left === 1) return 'That was the only option left.';
-  return `That's all ${numberWord(left)} options left.`;
+  if (left === 1) return 'That was the only option your answer left.';
+  return "That's every option your answer left.";
 }
 
 // Shown when every option left after a yes or no has been turned down.
@@ -359,11 +375,11 @@ export function allCopyStrings() {
   out.push(confidenceLine({ label: 'Higher confidence', matched_out_of_10: 7 }), confidenceLine({ label: 'Lower confidence', matched_out_of_10: 3 }, true));
   out.push(noRateLine({ later: true }), noRateLine({ answered: true, single: true }), noRateLine({}), PRIVATE_NAME, PRIVATE_WHY, answerLeftNone('yes', 4), startHint('Never ask'), startHint('Always ask'), startHint('Rarely'));
   [askRateText(0), askRateText(0.04), askRateText(0.3), askRateText(0.97), askRateText(1)].forEach((s) => out.push(s));
-  out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), allRejected(5, 1), allRejected(5, 3), endOfDecisions('1'), andMore(12));
+  out.push(accepted('Place'), decisionOf(1, 9), youSaid('yes'), allRejected(5), allRejected(5, 1), allRejected(5, 3), COPY.notForYouAnswer, roleLine('3'), genericName({ category: 'Health care' }), endOfDecisions('1'), andMore(12));
   out.push(settingsNote(100, 20), settingsNote(100, 20, 'shopping'));
   out.push(MECHANISM, MODEL_READS, EXACT_INPUT, ruledOutLine('no', 1), ruledOutLine('yes', 3), ruledOutLine('no', 0), ...modelReadsLines('places'), ...modelReadsLines('shopping'), tallyLine(3, 5), KIND_HINT, SHOW_ALL_KINDS, evidenceLine('places', { count: 3, total: 30, category: 'Cocktail Bar' }), evidenceLine('shopping', { count: 1, total: 10, category: 'Capcom' }), offVisits(1), offVisits(7), ROLE_LINE, SEE_REAL, PICK_MATCHED, PICK_MISSED, leanLine('Kin Shop'), noQuestionLine('Never ask'), noQuestionLine('When unsure'), truthfulLine(true, 'no'), truthfulLine(false, 'no'), truthfulLine(true, 'skip'));
   out.push(workspaceTitle('places', '1'), workspaceTitle('shopping', '1'), contextSummaryTitle('1'), showAll(30), mapLabel(28, 5));
-  out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
+  out.push(...Object.values(DOMAIN_COPY).flatMap((d) => [d.tab, d.kicker, d.sub, d.source, d.sourceDetail, d.choose, d.recent, d.contextCaption, d.usesBody, d.modelBody, ...d.limits]));
   const ev = {
     act_now_accuracy: 0.5, act_now_ci: [0.4, 0.6], always_ask_accuracy: 0.6, always_ask_ci: [0.5, 0.7],
     report_rows: 100, report_users: 20, options_per_decision: 5,

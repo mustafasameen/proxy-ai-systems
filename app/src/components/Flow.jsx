@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
-  COPY, MECHANISM, PICKED_LABEL, PICK_MATCHED, PICK_MISSED, PRIVATE_WHY, REAL_LABEL, ROLE_LINE, SEE_REAL, answerLeftNone, ruledOutLine, accepted, allRejected,
-  confidenceLine, dc, decisionOf, displayName, endOfDecisions, errorMessage, evidenceLine, isPrivate, leanLine, noQuestionLine, noRateLine, startHint, tallyLine, truthfulLine, workspaceTitle, youSaid,
+  COPY, MECHANISM, PICKED_LABEL, PICK_MATCHED, PICK_MISSED, PRIVATE_WHY, REAL_LABEL, SEE_REAL, answerLeftNone, ruledOutLine, accepted, allRejected,
+  confidenceLine, dc, decisionOf, displayName, endOfDecisions, errorMessage, evidenceLine, isPrivate, roleLine, leanLine, noQuestionLine, noRateLine, startHint, tallyLine, truthfulLine, workspaceTitle, youSaid,
 } from '../lib/copy.js';
 import { currentOption, isExhausted } from '../lib/flow.js';
 import { canSelect, evidence, optionRows, positionOf, yesKeeps } from '../lib/workspace.js';
@@ -14,11 +14,12 @@ function Status({ state, onCancel }) {
     text = state.busy === 'using' ? COPY.using : COPY.looking;
     cancel = true;
   } else if (state.notice === 'next') {
-    text = COPY.notForYou;
+    const cut = state.response && Array.isArray(state.response.ruled_out) && state.response.ruled_out.length > 0;
+    text = cut ? COPY.notForYouAnswer : COPY.notForYou;
   }
   return (
     <div className="status-wrap">
-      <p className="status" role="status" aria-live="polite">
+      <p className={state.notice === 'next' && !state.busy ? 'status note-next' : 'status'} role="status" aria-live="polite">
         {text}
         {state.busy && state.slow && <span className="slow"> {COPY.slow}</span>}
       </p>
@@ -136,7 +137,7 @@ function Question({ state, total, onAnswer }) {
   const ev = evidence(state.context && state.context.history, state.question);
   return (
     <div>
-      <p className="meta role">{ROLE_LINE}</p>
+      <p className="meta role">{roleLine(state.person)}</p>
       {state.leading && <p className="meta lean">{leanLine(displayName(state.leading))}</p>}
       <p className="kicker">{COPY.questionKicker}</p>
       <h2 className="h-q">{state.question.text}</h2>
@@ -242,6 +243,7 @@ export function Pick({ state, domain, total, onChoose, onReject, onNext, onChang
     main = (
       <div className="pick-block" key="accepted">
         <h2 className={big}>{accepted(displayName(option))}</h2>
+        <p className="meta confidence">{rateNote}</p>
         <Outcome state={state} domain={domain} onReveal={onReveal} />
         <div className="actions">
           <button type="button" className="primary-btn" onClick={onNext}>{COPY.nextDecision}</button>
@@ -284,9 +286,9 @@ export function Pick({ state, domain, total, onChoose, onReject, onNext, onChang
   }
   return (
     <div>
-      <AnswerLine state={state} onChange={onChangeAnswer} />
       {!response.question && <p className="meta no-question">{noQuestionLine(state.setting)}</p>}
       {main}
+      <AnswerLine state={state} onChange={onChangeAnswer} />
       <Changed response={response} />
     </div>
   );
@@ -356,7 +358,7 @@ export default function Flow(props) {
       </div>
       <h1 className="h-work" id="decision-title">{workspaceTitle(domain, state.person)}</h1>
       <p className="sub">{copy.sub}</p>
-      <p className="source meta">{copy.source}</p>
+      <p className="source meta">{copy.source}<br /><span className="source-detail">{copy.sourceDetail}</span></p>
       {!ended && (
         state.contextStatus === 'error' ? (
           <ErrorLine error={state.contextError} onRetry={props.onRetryContext} />
